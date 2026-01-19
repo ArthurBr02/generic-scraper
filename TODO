@@ -1,0 +1,23 @@
+Le but est de faire un scraper utilisant Playwright.
+Je veux que tout soit configurable depuis des fichiers .json
+Par exemple, il faut pouvoir configurer:
+- Le site à parser
+- Les sélecteurs CSS à utiliser
+- Les actions à faire (cliquer, scroller, etc.)
+- La fréquence d'exécution
+- Les données à extraire (titres, liens, images, etc.)
+- Le format de sortie (JSON, CSV, etc.)
+- Les données de sortie (colonnes, ordre, etc.)
+- Les paramètres de connexion (si nécessaire) (PLUS TARD)
+- Les options de gestion des erreurs (retries, timeout, etc.)
+- Les paramètres de logging (niveau de détail, fichier de log, etc.)
+- Les options de performance (headless, délai entre les actions, etc.)
+- Où extraire les données (texte, attribut, etc.)
+- Possibilité de faire des requests API en plus du scraping HTML
+
+Il faut aussi pouvoir gérer des workflows complexes:
+- Multi-pages (naviguer entre plusieurs pages)
+- Pagination
+- Authentification (login/logout) (PLUS TARD)
+- Interaction avec des formulaires (PLUS TARD)
+- Gestion des cookies et du stockage local (PLUS TARD)
