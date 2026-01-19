@@ -148,8 +148,7 @@ Scripts utiles (exemples)
 
 Développement
 
-- Sprint 1.1 — Terminé (2026-01-19) : setup du dépôt, prototype des actions de base, intégration Playwright initiale, writers JSON/CSV, `start.bat` pour Windows.
-- Prochaines tâches : finaliser le loader de configuration, ajouter actions avancées (pagination, api), tests et CI.
+- Sprint 1.2 — Terminé (2026-01-19) : loader de configuration (`src/utils/configLoader.js`) et schéma JSON, actions prototypes `pagination`, `api`, `scroll`, utilitaire de retries, tests Jest basiques, configuration ESLint et workflow CI minimal.
 
 Contribuer
 

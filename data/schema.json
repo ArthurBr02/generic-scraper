@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Generic Scraper Config",
+  "type": "object",
+  "properties": {
+    "setting1": { "type": "boolean" },
+    "setting2": { "type": "string" },
+    "setting3": { "type": "integer" }
+  },
+  "required": ["setting1"],
+  "additionalProperties": true
+}
