@@ -15,4 +15,4 @@ Outil de scraping générique et configurable, basé sur Playwright.
 - Gestion des retries, timeouts et logs
 
 # Avancée actuelle
-Sprint 1.2 — Terminé (2026-01-19)
+Sprint 1.3 — Terminé (2026-01-19)

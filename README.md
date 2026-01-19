@@ -140,7 +140,6 @@ Scripts utiles (exemples)
     "scripts": {
         "start": "node src/index.js",
         "dev": "node src/index.js --config ./data/config.json",
-        "test": "jest",
         "lint": "eslint src/"
     }
 }
@@ -148,7 +147,7 @@ Scripts utiles (exemples)
 
 Développement
 
-- Sprint 1.2 — Terminé (2026-01-19) : loader de configuration (`src/utils/configLoader.js`) et schéma JSON, actions prototypes `pagination`, `api`, `scroll`, utilitaire de retries, tests Jest basiques, configuration ESLint et workflow CI minimal.
+- Sprint 1.2 — Terminé (2026-01-19) : loader de configuration (`src/utils/configLoader.js`) et schéma JSON, point d'entrée CLI (`src/index.js`), gestion d'erreurs (`src/utils/error-handler.js`), actions prototypes `pagination`, `api`, `scroll`, utilitaire de retries, configuration ESLint.
 
 Contribuer
 

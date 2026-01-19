@@ -6,7 +6,6 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node src/index.js --config ./data/config.json",
-    "test": "jest --runInBand",
     "lint": "eslint src/"
   },
   "repository": {
@@ -29,7 +28,6 @@
     "winston": "^3.19.0"
   },
   "devDependencies": {
-    "eslint": "^9.39.2",
-    "jest": "^30.2.0"
+    "eslint": "^9.39.2"
   }
 }

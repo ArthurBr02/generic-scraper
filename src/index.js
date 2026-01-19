@@ -1,0 +1,160 @@
+#!/usr/bin/env node
+
+const minimist = require('minimist');
+const path = require('path');
+const { loadConfig } = require('./utils/configLoader');
+const { ScraperError } = require('./utils/error-handler');
+
+/**
+ * Point d'entrée CLI du Generic Scraper
+ * Usage: node src/index.js --config ./data/config.json
+ */
+
+async function main() {
+  try {
+    // Parsing des arguments de ligne de commande
+    const args = minimist(process.argv.slice(2), {
+      string: ['config', 'output', 'format'],
+      boolean: ['help', 'version', 'headless'],
+      alias: {
+        c: 'config',
+        h: 'help',
+        v: 'version',
+        o: 'output',
+        f: 'format'
+      },
+      default: {
+        config: './data/config.json'
+      }
+    });
+
+    // Affichage de l'aide
+    if (args.help) {
+      displayHelp();
+      process.exit(0);
+    }
+
+    // Affichage de la version
+    if (args.version) {
+      const pkg = require('../package.json');
+      console.log(`Generic Scraper v${pkg.version}`);
+      process.exit(0);
+    }
+
+    // Chargement de la configuration
+    const configPath = path.isAbsolute(args.config)
+      ? args.config
+      : path.resolve(process.cwd(), args.config);
+
+    console.log(`🔄 Chargement de la configuration depuis: ${configPath}`);
+    const config = loadConfig({ configPath });
+
+    // Override des options via CLI si spécifiées
+    if (args.output) {
+      config.output = config.output || {};
+      config.output.path = args.output;
+    }
+    if (args.format) {
+      config.output = config.output || {};
+      config.output.format = args.format;
+    }
+    if (args.headless !== undefined) {
+      config.browser = config.browser || {};
+      config.browser.headless = args.headless;
+    }
+
+    console.log(`✅ Configuration chargée avec succès: ${config.name || 'sans nom'}`);
+    console.log(`📋 Workflow: ${config.workflow || 'non spécifié'}`);
+
+    // TODO: Lancer le scraper (Phase 2)
+    console.log('\n⚠️  Le moteur de scraping n\'est pas encore implémenté (Phase 2)');
+    console.log('Configuration validée avec succès ✓');
+
+  } catch (error) {
+    handleError(error);
+    process.exit(1);
+  }
+}
+
+/**
+ * Affiche l'aide de la ligne de commande
+ */
+function displayHelp() {
+  console.log(`
+┌─────────────────────────────────────────────────────────┐
+│           Generic Scraper - CLI Help                    │
+└─────────────────────────────────────────────────────────┘
+
+Usage:
+  node src/index.js [options]
+
+Options:
+  -c, --config <path>    Chemin vers le fichier de configuration
+                         (défaut: ./data/config.json)
+  
+  -o, --output <path>    Dossier de sortie des données
+                         (surcharge la config)
+  
+  -f, --format <format>  Format de sortie: json, csv
+                         (surcharge la config)
+  
+  --headless             Active/désactive le mode headless
+                         (surcharge la config)
+  
+  -h, --help             Affiche cette aide
+  
+  -v, --version          Affiche la version
+
+Exemples:
+  # Utiliser la config par défaut
+  node src/index.js
+
+  # Spécifier une config custom
+  node src/index.js --config ./configs/examples/simple-scrape.json
+
+  # Override du format de sortie
+  node src/index.js --config ./data/config.json --format csv
+
+  # Mode non-headless (avec navigateur visible)
+  node src/index.js --headless false
+
+Documentation:
+  Voir ./documentation/plan.md pour plus de détails
+`);
+}
+
+/**
+ * Gère les erreurs et affiche des messages appropriés
+ */
+function handleError(error) {
+  console.error('\n❌ Erreur:');
+  
+  if (error instanceof ScraperError) {
+    console.error(`   ${error.message}`);
+    if (error.details) {
+      console.error(`   Détails: ${JSON.stringify(error.details, null, 2)}`);
+    }
+  } else if (error.validation) {
+    console.error(`   Validation de la configuration échouée:`);
+    error.validation.forEach((err, i) => {
+      console.error(`   ${i + 1}. ${err.instancePath} ${err.message}`);
+    });
+  } else if (error.code === 'ENOENT') {
+    console.error(`   Fichier introuvable: ${error.path}`);
+  } else {
+    console.error(`   ${error.message}`);
+    if (process.env.DEBUG) {
+      console.error('\nStack trace:');
+      console.error(error.stack);
+    }
+  }
+  
+  console.error('\nUtilisez --help pour voir les options disponibles.\n');
+}
+
+// Lancement de l'application
+if (require.main === module) {
+  main();
+}
+
+module.exports = { main, displayHelp };

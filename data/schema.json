@@ -1,12 +1,246 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Generic Scraper Config",
+  "title": "Generic Scraper Configuration Schema",
+  "description": "Schéma de validation pour les fichiers de configuration du Generic Scraper",
   "type": "object",
   "properties": {
-    "setting1": { "type": "boolean" },
-    "setting2": { "type": "string" },
-    "setting3": { "type": "integer" }
+    "name": {
+      "type": "string",
+      "description": "Nom du scraper"
+    },
+    "version": {
+      "type": "string",
+      "description": "Version de la configuration",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "target": {
+      "type": "object",
+      "description": "Configuration de la cible à scraper",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "URL de départ"
+        },
+        "baseUrl": {
+          "type": "string",
+          "description": "URL de base pour les liens relatifs"
+        }
+      },
+      "required": ["url"]
+    },
+    "browser": {
+      "type": "object",
+      "description": "Configuration du navigateur Playwright",
+      "properties": {
+        "headless": {
+          "type": "boolean",
+          "default": true,
+          "description": "Mode headless (sans interface graphique)"
+        },
+        "slowMo": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Ralentissement des actions en ms"
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 30000,
+          "description": "Timeout par défaut en ms"
+        },
+        "viewport": {
+          "type": "object",
+          "properties": {
+            "width": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "userAgent": {
+          "type": ["string", "null"],
+          "description": "User agent personnalisé"
+        },
+        "locale": {
+          "type": "string",
+          "default": "fr-FR",
+          "description": "Locale du navigateur"
+        }
+      }
+    },
+    "performance": {
+      "type": "object",
+      "description": "Configuration des performances",
+      "properties": {
+        "delayBetweenActions": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 500,
+          "description": "Délai entre les actions en ms"
+        },
+        "maxConcurrency": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1,
+          "description": "Nombre maximum d'opérations concurrentes"
+        },
+        "resourceBlocking": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "types": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["image", "font", "media", "stylesheet", "script"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "errorHandling": {
+      "type": "object",
+      "description": "Configuration de la gestion des erreurs",
+      "properties": {
+        "retries": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 3,
+          "description": "Nombre de tentatives en cas d'erreur"
+        },
+        "retryDelay": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 1000,
+          "description": "Délai entre les tentatives en ms"
+        },
+        "continueOnError": {
+          "type": "boolean",
+          "default": false,
+          "description": "Continuer malgré les erreurs"
+        },
+        "screenshotOnError": {
+          "type": "boolean",
+          "default": true,
+          "description": "Capturer une screenshot en cas d'erreur"
+        }
+      }
+    },
+    "logging": {
+      "type": "object",
+      "description": "Configuration du système de logs",
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": ["error", "warn", "info", "debug"],
+          "default": "info",
+          "description": "Niveau de log"
+        },
+        "console": {
+          "type": "boolean",
+          "default": true,
+          "description": "Activer les logs console"
+        },
+        "file": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true
+            },
+            "path": {
+              "type": "string",
+              "default": "./logs/scraper.log"
+            },
+            "maxSize": {
+              "type": "string",
+              "pattern": "^\\d+[kmg]$",
+              "default": "10m"
+            },
+            "maxFiles": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 5
+            }
+          }
+        }
+      }
+    },
+    "scheduling": {
+      "type": "object",
+      "description": "Configuration de la planification",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "cron": {
+          "type": "string",
+          "description": "Expression cron pour la planification"
+        },
+        "timezone": {
+          "type": "string",
+          "default": "Europe/Paris"
+        }
+      }
+    },
+    "workflow": {
+      "type": "string",
+      "description": "Chemin vers le fichier de workflow"
+    },
+    "output": {
+      "type": "object",
+      "description": "Configuration de la sortie des données",
+      "properties": {
+        "format": {
+          "type": "string",
+          "enum": ["json", "csv"],
+          "default": "json",
+          "description": "Format de sortie"
+        },
+        "path": {
+          "type": "string",
+          "default": "./output",
+          "description": "Dossier de sortie"
+        },
+        "filename": {
+          "type": "string",
+          "description": "Nom du fichier (supporte {{date}}, {{time}})"
+        },
+        "options": {
+          "type": "object",
+          "properties": {
+            "pretty": {
+              "type": "boolean",
+              "default": true,
+              "description": "Formater le JSON"
+            },
+            "append": {
+              "type": "boolean",
+              "default": false,
+              "description": "Ajouter aux fichiers existants"
+            }
+          }
+        },
+        "columns": {
+          "type": ["array", "null"],
+          "items": {
+            "type": "string"
+          },
+          "description": "Colonnes à exporter (CSV)"
+        }
+      }
+    }
   },
-  "required": ["setting1"],
+  "required": ["target"],
   "additionalProperties": true
 }

@@ -31,7 +31,6 @@
 | Logging | winston |
 | Output | JSON, CSV (via json2csv) |
 | Validation | ajv (JSON Schema) |
-| Tests | Jest + Playwright Test |
 
 ---
 
@@ -86,9 +85,6 @@ generic-scraper/
 │   ├── plan.md                  # Ce fichier
 │   ├── configuration.md         # Documentation des configs
 │   └── examples.md              # Exemples d'utilisation
-├── tests/
-│   ├── unit/                    # Tests unitaires
-│   └── integration/             # Tests d'intégration
 ├── package.json
 └── README.md
 ```
@@ -387,7 +383,7 @@ generic-scraper/
 # Commandes Sprint 1.1
 npm init -y
 npm install playwright minimist winston ajv json2csv
-npm install -D eslint jest
+npm install -D eslint
 npx playwright install chromium
 ```
 
@@ -863,26 +859,17 @@ class Scheduler {
 
 ---
 
-### Phase 7 : Tests et documentation (Sprint 11)
+### Phase 7 : Documentation (Sprint 11)
 > **Durée estimée : 1 semaine**
 
-#### Sprint 7.1 : Tests
+#### Sprint 7.1 : Documentation
 | Tâche | Détails | Fichiers |
 |-------|---------|----------|
-| **T7.1.1** Setup Jest | Configuration | `jest.config.js` |
-| **T7.1.2** Tests unitaires actions | Chaque action | `tests/unit/actions/*.test.js` |
-| **T7.1.3** Tests unitaires extracteurs | Chaque extracteur | `tests/unit/extractors/*.test.js` |
-| **T7.1.4** Tests intégration | Workflows complets | `tests/integration/*.test.js` |
-| **T7.1.5** Mocks Playwright | Simulation navigateur | `tests/mocks/` |
-
-#### Sprint 7.2 : Documentation
-| Tâche | Détails | Fichiers |
-|-------|---------|----------|
-| **T7.2.1** README principal | Installation, usage | `README.md` |
-| **T7.2.2** Doc configuration | Tous les paramètres | `documentation/configuration.md` |
-| **T7.2.3** Exemples | Cas d'usage courants | `documentation/examples.md` |
-| **T7.2.4** JSDoc | Documentation code | Tous les fichiers |
-| **T7.2.5** Configs d'exemple | Templates prêts à l'emploi | `configs/examples/` |
+| **T7.1.1** README principal | Installation, usage | `README.md` |
+| **T7.1.2** Doc configuration | Tous les paramètres | `documentation/configuration.md` |
+| **T7.1.3** Exemples | Cas d'usage courants | `documentation/examples.md` |
+| **T7.1.4** JSDoc | Documentation code | Tous les fichiers |
+| **T7.1.5** Configs d'exemple | Templates prêts à l'emploi | `configs/examples/` |
 
 ---
 
@@ -930,9 +917,7 @@ class Scheduler {
     "lodash": "^4.17.21"
   },
   "devDependencies": {
-    "jest": "^29.7.0",
-    "eslint": "^8.56.0",
-    "@playwright/test": "^1.40.0"
+    "eslint": "^8.56.0"
   }
 }
 ```
@@ -945,9 +930,6 @@ class Scheduler {
     "start": "node src/index.js",
     "start:config": "node src/index.js --config",
     "dev": "node src/index.js --config ./data/config.json",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:integration": "jest --testPathPattern=integration",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix"
   }
