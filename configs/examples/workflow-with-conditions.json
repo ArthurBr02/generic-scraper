@@ -1,0 +1,111 @@
+{
+  "$schema": "../../src/schemas/workflow.schema.json",
+  "name": "conditional-workflow",
+  "description": "Exemple d'utilisation de conditions pour adapter le comportement",
+  "steps": [
+    {
+      "id": "step-1",
+      "name": "Naviguer vers le site",
+      "type": "navigate",
+      "config": {
+        "url": "https://example.com",
+        "waitUntil": "networkidle"
+      }
+    },
+    {
+      "id": "step-2",
+      "name": "Vérifier et gérer la popup de cookies",
+      "type": "condition",
+      "config": {
+        "if": {
+          "type": "exists",
+          "selector": ".cookie-banner",
+          "timeout": 2000
+        },
+        "then": [
+          {
+            "type": "click",
+            "config": {
+              "selector": ".cookie-accept"
+            }
+          },
+          {
+            "type": "wait",
+            "config": {
+              "type": "time",
+              "value": 500
+            }
+          }
+        ],
+        "else": []
+      }
+    },
+    {
+      "id": "step-3",
+      "name": "Extraire le nombre d'articles",
+      "type": "extract",
+      "output": "articleCount",
+      "config": {
+        "fields": [
+          {
+            "name": "count",
+            "type": "text",
+            "selector": ".article-count"
+          }
+        ]
+      }
+    },
+    {
+      "id": "step-4",
+      "name": "Vérifier s'il y a beaucoup d'articles",
+      "type": "condition",
+      "config": {
+        "if": {
+          "type": "greaterThan",
+          "value": "{{articleCount.count}}",
+          "compare": 100
+        },
+        "then": [
+          {
+            "type": "extract",
+            "output": "limitedArticles",
+            "config": {
+              "container": ".article",
+              "multiple": true,
+              "limit": 50,
+              "fields": [
+                {
+                  "name": "title",
+                  "type": "text",
+                  "selector": "h2"
+                }
+              ]
+            }
+          }
+        ],
+        "else": [
+          {
+            "type": "extract",
+            "output": "allArticles",
+            "config": {
+              "container": ".article",
+              "multiple": true,
+              "fields": [
+                {
+                  "name": "title",
+                  "type": "text",
+                  "selector": "h2"
+                },
+                {
+                  "name": "content",
+                  "type": "text",
+                  "selector": ".content"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

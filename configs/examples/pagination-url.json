@@ -1,0 +1,49 @@
+{
+  "$schema": "../../src/schemas/workflow.schema.json",
+  "name": "pagination-url-example",
+  "description": "Exemple de pagination par pattern d'URL",
+  "steps": [
+    {
+      "id": "step-1",
+      "name": "Extraire les articles",
+      "type": "extract",
+      "output": "articles",
+      "config": {
+        "container": "article.post",
+        "multiple": true,
+        "fields": [
+          {
+            "name": "title",
+            "type": "text",
+            "selector": "h2"
+          },
+          {
+            "name": "excerpt",
+            "type": "text",
+            "selector": ".excerpt"
+          },
+          {
+            "name": "url",
+            "type": "attribute",
+            "selector": "a.read-more",
+            "attribute": "href"
+          }
+        ]
+      }
+    },
+    {
+      "id": "step-2",
+      "name": "Paginer via URL",
+      "type": "pagination",
+      "output": "paginationResults",
+      "config": {
+        "type": "url",
+        "urlPattern": "https://example.com/blog/page/{page}",
+        "startPage": 1,
+        "maxPages": 10,
+        "waitForNavigation": true,
+        "repeatSteps": ["step-1"]
+      }
+    }
+  ]
+}

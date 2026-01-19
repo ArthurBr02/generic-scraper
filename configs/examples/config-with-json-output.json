@@ -1,0 +1,19 @@
+{
+  "name": "example-with-json-output",
+  "version": "1.0.0",
+  "target": {
+    "url": "https://example.com"
+  },
+  "browser": {
+    "headless": true,
+    "timeout": 30000
+  },
+  "workflow": "./configs/examples/extraction-example.json",
+  "output": {
+    "format": "json",
+    "path": "./output",
+    "filename": "scraping-results-{{date}}-{{time}}",
+    "pretty": true,
+    "append": false
+  }
+}

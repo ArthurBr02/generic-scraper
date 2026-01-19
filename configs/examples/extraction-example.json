@@ -1,0 +1,66 @@
+{
+  "name": "example-extraction",
+  "description": "Exemple d'extraction de données depuis une page",
+  "steps": [
+    {
+      "id": "step-1",
+      "name": "Naviguer vers la page",
+      "type": "navigate",
+      "config": {
+        "url": "https://example.com",
+        "waitUntil": "networkidle"
+      }
+    },
+    {
+      "id": "step-2",
+      "name": "Attendre le chargement",
+      "type": "wait",
+      "config": {
+        "type": "time",
+        "value": 2000
+      }
+    },
+    {
+      "id": "step-3",
+      "name": "Extraire le titre de la page",
+      "type": "extract",
+      "output": "pageTitle",
+      "config": {
+        "fields": [
+          {
+            "name": "title",
+            "type": "text",
+            "selector": "h1"
+          },
+          {
+            "name": "description",
+            "type": "text",
+            "selector": "p"
+          }
+        ]
+      }
+    },
+    {
+      "id": "step-4",
+      "name": "Extraire les liens de la page",
+      "type": "extract",
+      "output": "links",
+      "config": {
+        "container": "a",
+        "multiple": true,
+        "limit": 10,
+        "fields": [
+          {
+            "name": "text",
+            "type": "text"
+          },
+          {
+            "name": "url",
+            "type": "attribute",
+            "attribute": "href"
+          }
+        ]
+      }
+    }
+  ]
+}

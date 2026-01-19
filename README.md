@@ -13,11 +13,38 @@ Outil de scraping générique et configurable, basé sur Playwright.
   - `scroll` - Défilement (page, element, bottom, top, into-view)
   - `wait` - Attentes variées (timeout, selector, navigation, networkidle, function, url)
   - `input` - Saisies et formulaires (fill, type, press, select, check, uncheck, upload)
+  - `extract` - Extraction de données (text, attribute, html, list)
   - `api` - Requêtes API
-  - `pagination` - Gestion de la pagination
-- 🚧 Workflows séquentiels et sous-workflows (en cours)
-- 🚧 Extracteurs de données (en cours)
-- 🚧 Export en `JSON` et `CSV` (en cours)
+  - `pagination` - Gestion avancée de la pagination (click, url, scroll)
+  - `loop` - Itération sur des éléments/tableaux
+  - `condition` - Branchements conditionnels (if/then/else)
+  - `subWorkflow` - Appel de sous-workflows réutilisables
+- ✅ Extracteurs de données :
+  - `text` - Extraction de texte (innerText, textContent)
+  - `attribute` - Extraction d'attributs HTML
+  - `html` - Extraction de code HTML (inner, outer)
+  - `list` - Extraction de listes avec sous-champs
+- ✅ Workflows séquentiels :
+  - Orchestration des étapes (steps)
+  - Contexte partagé entre steps
+  - Templating de variables {{variable}}
+  - Gestion des erreurs par step
+  - Validation JSON Schema
+  - Sous-workflows réutilisables
+  - Boucles et itérations
+  - Conditions et branchements
+- ✅ Pagination avancée :
+  - Pagination par clic (bouton suivant)
+  - Pagination par URL (pattern incrémental)
+  - Scroll infini avec détection de fin
+  - Limites configurables (maxPages, maxItems)
+  - Répétition d'étapes sur chaque page
+- ✅ Export de données :
+  - Format JSON (pretty print, append mode)
+  - Format CSV (headers, délimiteurs, colonnes)
+  - Nommage avec templates ({{date}}, {{time}}, etc.)
+  - Sélection et réordonnancement de colonnes
+  - Mode append pour fichiers existants
 - ✅ Gestion des retries et timeouts
 
 ## Prérequis

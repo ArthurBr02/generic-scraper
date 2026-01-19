@@ -1,0 +1,103 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://generic-scraper/schemas/workflow.schema.json",
+  "title": "Workflow Schema",
+  "description": "Schema for workflow configuration files",
+  "type": "object",
+  "required": ["name", "steps"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Workflow name",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "description": "Workflow description"
+    },
+    "continueOnError": {
+      "type": "boolean",
+      "description": "Continue execution even if a step fails",
+      "default": false
+    },
+    "steps": {
+      "type": "array",
+      "description": "Array of workflow steps",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/step"
+      }
+    },
+    "subWorkflows": {
+      "type": "object",
+      "description": "Sub-workflows definitions",
+      "additionalProperties": {
+        "$ref": "#/definitions/subWorkflow"
+      }
+    }
+  },
+  "definitions": {
+    "step": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique step identifier"
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable step name"
+        },
+        "type": {
+          "type": "string",
+          "description": "Action type",
+          "enum": [
+            "navigate",
+            "click",
+            "scroll",
+            "wait",
+            "input",
+            "extract",
+            "api",
+            "pagination",
+            "loop",
+            "condition",
+            "subWorkflow"
+          ]
+        },
+        "config": {
+          "type": "object",
+          "description": "Step configuration (action-specific)"
+        },
+        "output": {
+          "type": "string",
+          "description": "Variable name to store step result"
+        },
+        "continueOnError": {
+          "type": "boolean",
+          "description": "Continue if this step fails",
+          "default": false
+        }
+      }
+    },
+    "subWorkflow": {
+      "type": "object",
+      "required": ["steps"],
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Sub-workflow description"
+        },
+        "steps": {
+          "type": "array",
+          "description": "Array of steps",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/step"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "example-with-csv-output",
+  "version": "1.0.0",
+  "target": {
+    "url": "https://example.com"
+  },
+  "browser": {
+    "headless": true,
+    "timeout": 30000
+  },
+  "workflow": "./configs/examples/extraction-example.json",
+  "output": {
+    "format": "csv",
+    "path": "./output",
+    "filename": "scraping-results-{{date}}",
+    "headers": true,
+    "delimiter": ",",
+    "append": false,
+    "columns": ["title", "price", "link"]
+  }
+}

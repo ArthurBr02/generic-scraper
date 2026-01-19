@@ -126,6 +126,18 @@ function registerBuiltInActions() {
     // Register pagination action
     registerAction('pagination', require('./pagination'));
     
+    // Register extract action
+    registerAction('extract', require('./extract'));
+    
+    // Register loop action
+    registerAction('loop', require('./loop'));
+    
+    // Register condition action
+    registerAction('condition', require('./condition'));
+    
+    // Register subWorkflow action
+    registerAction('subWorkflow', require('./subWorkflow'));
+    
     logger.info(`Registered ${actions.size} built-in actions`);
   } catch (error) {
     logger.warn('Some built-in actions failed to register', { error: error.message });

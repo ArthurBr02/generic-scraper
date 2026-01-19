@@ -2,8 +2,10 @@
 
 const minimist = require('minimist');
 const path = require('path');
+const fs = require('fs');
 const { loadConfig } = require('./utils/configLoader');
 const { ScraperError } = require('./utils/error-handler');
+const Scraper = require('./core/scraper');
 
 /**
  * Point d'entrée CLI du Generic Scraper
@@ -64,11 +66,50 @@ async function main() {
     }
 
     console.log(`✅ Configuration chargée avec succès: ${config.name || 'sans nom'}`);
-    console.log(`📋 Workflow: ${config.workflow || 'non spécifié'}`);
+    
+    // Charger le workflow si spécifié
+    let workflowConfig = null;
+    if (config.workflow) {
+      const workflowPath = path.isAbsolute(config.workflow)
+        ? config.workflow
+        : path.resolve(path.dirname(configPath), config.workflow);
+      
+      if (fs.existsSync(workflowPath)) {
+        console.log(`📋 Chargement du workflow: ${workflowPath}`);
+        workflowConfig = JSON.parse(fs.readFileSync(workflowPath, 'utf8'));
+      } else {
+        console.log(`⚠️  Fichier de workflow introuvable: ${workflowPath}`);
+      }
+    }
 
-    // TODO: Lancer le scraper (Phase 2)
-    console.log('\n⚠️  Le moteur de scraping n\'est pas encore implémenté (Phase 2)');
-    console.log('Configuration validée avec succès ✓');
+    // Créer l'instance du scraper
+    const scraper = new Scraper({
+      ...config,
+      workflow: workflowConfig
+    });
+
+    // Exécuter le scraping
+    console.log('\n🚀 Démarrage du scraping...\n');
+    const results = await scraper.execute();
+
+    // Afficher les résultats
+    console.log('\n✅ Scraping terminé avec succès!');
+    console.log(`📊 Durée: ${results.duration}ms`);
+    
+    if (results.data && Object.keys(results.data).length > 0) {
+      console.log(`📦 Données extraites:`);
+      for (const [key, value] of Object.entries(results.data)) {
+        if (Array.isArray(value)) {
+          console.log(`   - ${key}: ${value.length} éléments`);
+        } else if (typeof value === 'object') {
+          console.log(`   - ${key}: ${Object.keys(value).length} propriétés`);
+        } else {
+          console.log(`   - ${key}: ${value}`);
+        }
+      }
+    }
+
+    console.log('\n✨ Terminé!\n');
 
   } catch (error) {
     handleError(error);

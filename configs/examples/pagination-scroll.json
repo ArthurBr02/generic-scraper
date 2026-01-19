@@ -1,0 +1,67 @@
+{
+  "$schema": "../../src/schemas/workflow.schema.json",
+  "name": "pagination-scroll-example",
+  "description": "Exemple de pagination par scroll infini",
+  "steps": [
+    {
+      "id": "step-1",
+      "name": "Naviguer vers le feed infini",
+      "type": "navigate",
+      "config": {
+        "url": "https://example.com/feed",
+        "waitUntil": "networkidle"
+      }
+    },
+    {
+      "id": "step-2",
+      "name": "Attendre le premier contenu",
+      "type": "wait",
+      "config": {
+        "type": "selector",
+        "value": ".feed-item",
+        "timeout": 5000
+      }
+    },
+    {
+      "id": "step-3",
+      "name": "Extraire les items du feed",
+      "type": "extract",
+      "output": "feedItems",
+      "config": {
+        "container": ".feed-item",
+        "multiple": true,
+        "fields": [
+          {
+            "name": "content",
+            "type": "text",
+            "selector": ".content"
+          },
+          {
+            "name": "author",
+            "type": "text",
+            "selector": ".author"
+          },
+          {
+            "name": "timestamp",
+            "type": "text",
+            "selector": ".timestamp"
+          }
+        ]
+      }
+    },
+    {
+      "id": "step-4",
+      "name": "Scroller pour charger plus de contenu",
+      "type": "pagination",
+      "output": "scrollResults",
+      "config": {
+        "type": "scroll",
+        "maxScrolls": 10,
+        "maxItems": 100,
+        "scrollDelay": 1500,
+        "endSelector": ".end-of-feed",
+        "repeatSteps": ["step-3"]
+      }
+    }
+  ]
+}

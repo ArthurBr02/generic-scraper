@@ -1,0 +1,124 @@
+{
+  "$schema": "../../src/schemas/workflow.schema.json",
+  "name": "workflow-with-subworkflows",
+  "description": "Exemple d'utilisation de sous-workflows pour réutiliser du code",
+  "steps": [
+    {
+      "id": "step-1",
+      "name": "Naviguer vers la page principale",
+      "type": "navigate",
+      "config": {
+        "url": "https://example.com/categories",
+        "waitUntil": "networkidle"
+      }
+    },
+    {
+      "id": "step-2",
+      "name": "Extraire les catégories",
+      "type": "extract",
+      "output": "categories",
+      "config": {
+        "container": ".category-item",
+        "multiple": true,
+        "limit": 3,
+        "fields": [
+          {
+            "name": "name",
+            "type": "text",
+            "selector": ".category-name"
+          },
+          {
+            "name": "url",
+            "type": "attribute",
+            "selector": "a",
+            "attribute": "href"
+          }
+        ]
+      }
+    },
+    {
+      "id": "step-3",
+      "name": "Parcourir chaque catégorie",
+      "type": "loop",
+      "output": "categoryProducts",
+      "config": {
+        "items": "categories",
+        "itemVar": "category",
+        "steps": [
+          {
+            "type": "subWorkflow",
+            "output": "products",
+            "config": {
+              "name": "extract-category-products",
+              "params": {
+                "categoryUrl": "{{category.url}}",
+                "categoryName": "{{category.name}}"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "subWorkflows": {
+    "extract-category-products": {
+      "description": "Extrait les produits d'une catégorie",
+      "steps": [
+        {
+          "id": "sub-1",
+          "name": "Naviguer vers la catégorie",
+          "type": "navigate",
+          "config": {
+            "url": "{{params.categoryUrl}}",
+            "waitUntil": "networkidle"
+          }
+        },
+        {
+          "id": "sub-2",
+          "name": "Attendre le chargement des produits",
+          "type": "wait",
+          "config": {
+            "type": "selector",
+            "value": ".product-list",
+            "timeout": 5000
+          }
+        },
+        {
+          "id": "sub-3",
+          "name": "Extraire les produits",
+          "type": "extract",
+          "output": "products",
+          "config": {
+            "container": ".product-item",
+            "multiple": true,
+            "limit": 20,
+            "fields": [
+              {
+                "name": "category",
+                "type": "text",
+                "selector": null,
+                "default": "{{params.categoryName}}"
+              },
+              {
+                "name": "title",
+                "type": "text",
+                "selector": ".product-title"
+              },
+              {
+                "name": "price",
+                "type": "text",
+                "selector": ".product-price"
+              },
+              {
+                "name": "image",
+                "type": "attribute",
+                "selector": "img",
+                "attribute": "src"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

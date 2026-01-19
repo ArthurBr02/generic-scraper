@@ -1,0 +1,89 @@
+{
+  "$schema": "../../src/schemas/workflow.schema.json",
+  "name": "advanced-workflow-with-loops",
+  "description": "Exemple d'utilisation de loops pour parcourir des URLs et extraire des détails",
+  "steps": [
+    {
+      "id": "step-1",
+      "name": "Naviguer vers la page de listing",
+      "type": "navigate",
+      "config": {
+        "url": "https://example.com/products",
+        "waitUntil": "networkidle"
+      }
+    },
+    {
+      "id": "step-2",
+      "name": "Extraire les URLs des produits",
+      "type": "extract",
+      "output": "productUrls",
+      "config": {
+        "container": ".product-item",
+        "multiple": true,
+        "limit": 10,
+        "fields": [
+          {
+            "name": "url",
+            "type": "attribute",
+            "selector": "a",
+            "attribute": "href"
+          },
+          {
+            "name": "name",
+            "type": "text",
+            "selector": ".product-name"
+          }
+        ]
+      }
+    },
+    {
+      "id": "step-3",
+      "name": "Parcourir chaque produit pour obtenir les détails",
+      "type": "loop",
+      "output": "productDetails",
+      "config": {
+        "items": "productUrls",
+        "itemVar": "product",
+        "indexVar": "idx",
+        "limit": 5,
+        "steps": [
+          {
+            "type": "navigate",
+            "config": {
+              "url": "{{product.url}}",
+              "waitUntil": "networkidle"
+            }
+          },
+          {
+            "type": "extract",
+            "output": "details",
+            "config": {
+              "fields": [
+                {
+                  "name": "title",
+                  "type": "text",
+                  "selector": "h1"
+                },
+                {
+                  "name": "price",
+                  "type": "text",
+                  "selector": ".price"
+                },
+                {
+                  "name": "description",
+                  "type": "text",
+                  "selector": ".description"
+                },
+                {
+                  "name": "inStock",
+                  "type": "text",
+                  "selector": ".stock-status"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "$schema": "../src/schemas/workflow.schema.json",
+  "name": "complete-workflow-example",
+  "description": "Exemple complet de workflow avec navigation, extraction et utilisation de variables",
+  "steps": [
+    {
+      "id": "step-1",
+      "name": "Naviguer vers Google",
+      "type": "navigate",
+      "config": {
+        "url": "https://www.google.com",
+        "waitUntil": "networkidle"
+      }
+    },
+    {
+      "id": "step-2",
+      "name": "Attendre que la page soit chargée",
+      "type": "wait",
+      "config": {
+        "type": "selector",
+        "value": "input[name='q']",
+        "timeout": 5000
+      }
+    },
+    {
+      "id": "step-3",
+      "name": "Saisir une recherche",
+      "type": "input",
+      "config": {
+        "selector": "input[name='q']",
+        "value": "playwright web scraping",
+        "action": "fill"
+      }
+    },
+    {
+      "id": "step-4",
+      "name": "Soumettre la recherche",
+      "type": "input",
+      "config": {
+        "selector": "input[name='q']",
+        "action": "press",
+        "key": "Enter"
+      }
+    },
+    {
+      "id": "step-5",
+      "name": "Attendre les résultats",
+      "type": "wait",
+      "config": {
+        "type": "selector",
+        "value": "#search",
+        "timeout": 10000
+      }
+    },
+    {
+      "id": "step-6",
+      "name": "Extraire les résultats de recherche",
+      "type": "extract",
+      "output": "searchResults",
+      "config": {
+        "container": "div.g",
+        "multiple": true,
+        "limit": 5,
+        "fields": [
+          {
+            "name": "title",
+            "type": "text",
+            "selector": "h3"
+          },
+          {
+            "name": "link",
+            "type": "attribute",
+            "selector": "a",
+            "attribute": "href"
+          },
+          {
+            "name": "description",
+            "type": "text",
+            "selector": ".VwiC3b",
+            "default": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "step-7",
+      "name": "Extraire le nombre de résultats",
+      "type": "extract",
+      "output": "resultsCount",
+      "config": {
+        "fields": [
+          {
+            "name": "count",
+            "type": "text",
+            "selector": "#result-stats"
+          }
+        ]
+      }
+    }
+  ]
+}

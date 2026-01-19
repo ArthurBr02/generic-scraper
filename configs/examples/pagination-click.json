@@ -1,0 +1,69 @@
+{
+  "$schema": "../../src/schemas/workflow.schema.json",
+  "name": "pagination-click-example",
+  "description": "Exemple de pagination par clic sur bouton suivant",
+  "steps": [
+    {
+      "id": "step-1",
+      "name": "Naviguer vers la page de listing",
+      "type": "navigate",
+      "config": {
+        "url": "https://example.com/products",
+        "waitUntil": "networkidle"
+      }
+    },
+    {
+      "id": "step-2",
+      "name": "Attendre le chargement de la liste",
+      "type": "wait",
+      "config": {
+        "type": "selector",
+        "value": ".product-list",
+        "timeout": 5000
+      }
+    },
+    {
+      "id": "step-3",
+      "name": "Extraire les produits de la page courante",
+      "type": "extract",
+      "output": "products",
+      "config": {
+        "container": ".product-item",
+        "multiple": true,
+        "fields": [
+          {
+            "name": "title",
+            "type": "text",
+            "selector": ".product-title"
+          },
+          {
+            "name": "price",
+            "type": "text",
+            "selector": ".product-price"
+          },
+          {
+            "name": "link",
+            "type": "attribute",
+            "selector": "a",
+            "attribute": "href"
+          }
+        ]
+      }
+    },
+    {
+      "id": "step-4",
+      "name": "Paginer sur les pages suivantes",
+      "type": "pagination",
+      "output": "paginationResults",
+      "config": {
+        "type": "click",
+        "nextSelector": ".pagination .next:not(.disabled)",
+        "maxPages": 5,
+        "waitAfterClick": 2000,
+        "disabledClass": "disabled",
+        "waitForSelector": ".product-list",
+        "repeatSteps": ["step-3"]
+      }
+    }
+  ]
+}
