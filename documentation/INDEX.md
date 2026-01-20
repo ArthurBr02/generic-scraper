@@ -50,30 +50,6 @@ Guide complet pour naviguer dans toute la documentation du projet.
 
 ---
 
-## 🏗️ Architecture et développement
-
-### Pour contributeurs et développeurs
-
-1. **[STRUCTURE.md](STRUCTURE.md)** - Architecture du projet
-   - Organisation des fichiers
-   - Patterns utilisés
-   - Flux de données
-   - Points d'extension
-
-2. **[plan.md](plan.md)** - Plan d'implémentation
-   - Historique du développement
-   - Détails techniques
-   - Sprints et tâches
-   - Spécifications complètes
-
-3. **[CONTRIBUTING.md](CONTRIBUTING.md)** - Guide de contribution
-   - Comment contribuer
-   - Standards de code
-   - Processus de PR
-   - Ajouter une action/extracteur
-
----
-
 ## 📝 Historique et changelog
 
 1. **[CHANGELOG.md](CHANGELOG.md)** - Historique des versions
@@ -158,7 +134,6 @@ Consultez [examples.md](examples.md) :
 | Gérer les erreurs | configuration.md | Gestion des erreurs |
 | Exporter en CSV | configuration.md | Export des données |
 | Utiliser des templates | configuration.md | Templating |
-| Contribuer | CONTRIBUTING.md | Comment contribuer |
 | Comprendre l'architecture | STRUCTURE.md | Vue d'ensemble |
 
 ### Par niveau
@@ -177,11 +152,6 @@ Consultez [examples.md](examples.md) :
 1. [STRUCTURE.md](STRUCTURE.md)
 2. [plan.md](plan.md)
 3. Code source dans `src/`
-
-**Expert** - Je veux contribuer
-1. [CONTRIBUTING.md](CONTRIBUTING.md)
-2. [STRUCTURE.md](STRUCTURE.md)
-3. [plan.md](plan.md)
 
 ---
 
@@ -265,12 +235,6 @@ Tous les exemples sont dans [`configs/examples/`](../configs/examples/) :
 3. **Cherchez dans les issues** : [GitHub Issues](https://github.com/ArthurBr02/generic-scraper/issues)
 4. **Ouvrez une issue** avec le tag `question`
 
-### Je veux contribuer
-
-1. Lisez [CONTRIBUTING.md](../CONTRIBUTING.md)
-2. Consultez [STRUCTURE.md](../STRUCTURE.md) pour comprendre l'architecture
-3. Regardez les issues avec le tag `good first issue`
-
 ---
 
 ## 📊 Statistiques de la documentation
@@ -330,12 +294,6 @@ Pour maîtriser Generic Scraper :
 - [ ] Scheduler configuré
 - [ ] Templates utilisés
 - [ ] Sous-workflows implémentés
-
-**Expert**
-- [ ] Architecture comprise
-- [ ] Contribution effectuée
-- [ ] Action personnalisée créée
-- [ ] Documentation améliorée
 
 ---
 

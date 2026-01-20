@@ -899,6 +899,7 @@ class Scheduler {
 | **T8.3.3** LocalStorage | Gestion stockage local |
 | **T8.3.4** SessionStorage | Gestion stockage session |
 
+#### Sprint 8.4 : Mise à jour de la documentation (PLUS TARD)
 ---
 
 ## Détails techniques
