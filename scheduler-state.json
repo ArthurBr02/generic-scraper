@@ -1,0 +1,25 @@
+{
+  "lastUpdate": "2026-01-20T20:40:06.408Z",
+  "isRunning": false,
+  "config": {
+    "cron": "*/2 * * * *",
+    "timezone": "Europe/Paris"
+  },
+  "executionHistory": [
+    {
+      "id": "exec_1768941480016",
+      "startTime": "2026-01-20T20:38:00.016Z",
+      "status": "failed",
+      "error": "At least one field must be configured for extraction",
+      "duration": 8217,
+      "endTime": "2026-01-20T20:38:08.233Z"
+    },
+    {
+      "id": "exec_1768941600020",
+      "startTime": "2026-01-20T20:40:00.020Z",
+      "status": "running",
+      "error": null,
+      "duration": null
+    }
+  ]
+}

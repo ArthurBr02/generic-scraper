@@ -6,6 +6,7 @@ const fs = require('fs');
 const { loadConfig } = require('./utils/configLoader');
 const { ScraperError } = require('./utils/error-handler');
 const Scraper = require('./core/scraper');
+const Scheduler = require('./core/scheduler');
 
 /**
  * Point d'entrée CLI du Generic Scraper
@@ -17,13 +18,15 @@ async function main() {
     // Parsing des arguments de ligne de commande
     const args = minimist(process.argv.slice(2), {
       string: ['config', 'output', 'format'],
-      boolean: ['help', 'version', 'headless'],
+      boolean: ['help', 'version', 'headless', 'daemon', 'schedule'],
       alias: {
         c: 'config',
         h: 'help',
         v: 'version',
         o: 'output',
-        f: 'format'
+        f: 'format',
+        d: 'daemon',
+        s: 'schedule'
       },
       default: {
         config: './data/config.json'
@@ -88,6 +91,35 @@ async function main() {
       workflow: workflowConfig
     });
 
+    // Si mode schedule/daemon, utiliser le scheduler
+    if (args.daemon || args.schedule || config.scheduling?.enabled) {
+      console.log('\n📅 Démarrage du scheduler...\n');
+      
+      const scheduler = new Scheduler(config, () => new Scraper({
+        ...config,
+        workflow: workflowConfig
+      }));
+
+      if (args.daemon) {
+        scheduler.runDaemon();
+      } else {
+        scheduler.start();
+        
+        console.log('✅ Scheduler démarré!');
+        console.log(`⏰ Expression cron: ${config.scheduling.cron}`);
+        console.log(`🌍 Timezone: ${config.scheduling.timezone || 'système'}`);
+        console.log('\n💡 Appuyez sur Ctrl+C pour arrêter\n');
+        
+        // Keep process alive
+        process.on('SIGINT', () => {
+          console.log('\n\n🛑 Arrêt du scheduler...');
+          scheduler.stop();
+          process.exit(0);
+        });
+      }
+      return;
+    }
+
     // Exécuter le scraping
     console.log('\n🚀 Démarrage du scraping...\n');
     const results = await scraper.execute();
@@ -142,6 +174,10 @@ Options:
   --headless             Active/désactive le mode headless
                          (surcharge la config)
   
+  -s, --schedule         Démarre le scheduler (exécution planifiée)
+  
+  -d, --daemon           Démarre en mode daemon (arrière-plan)
+  
   -h, --help             Affiche cette aide
   
   -v, --version          Affiche la version
@@ -158,6 +194,12 @@ Exemples:
 
   # Mode non-headless (avec navigateur visible)
   node src/index.js --headless false
+
+  # Démarrer le scheduler
+  node src/index.js --schedule
+
+  # Démarrer en mode daemon
+  node src/index.js --daemon
 
 Documentation:
   Voir ./documentation/plan.md pour plus de détails

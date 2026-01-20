@@ -1,0 +1,39 @@
+{
+  "$schema": "../../src/schemas/workflow.schema.json",
+  "name": "simple-navigation",
+  "description": "Workflow simple pour tester le scheduler",
+  
+  "steps": [
+    {
+      "id": "step-1",
+      "name": "Navigation vers example.com",
+      "type": "navigate",
+      "config": {
+        "url": "https://example.com",
+        "waitUntil": "networkidle"
+      }
+    },
+    
+    {
+      "id": "step-2",
+      "name": "Extraction du titre",
+      "type": "extract",
+      "config": {
+        "selector": "h1",
+        "type": "text"
+      },
+      "output": "title"
+    },
+    
+    {
+      "id": "step-3",
+      "name": "Extraction du contenu",
+      "type": "extract",
+      "config": {
+        "selector": "p",
+        "type": "text"
+      },
+      "output": "content"
+    }
+  ]
+}

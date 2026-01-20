@@ -14,7 +14,7 @@ Outil de scraping générique et configurable, basé sur Playwright.
   - `wait` - Attentes variées (timeout, selector, navigation, networkidle, function, url)
   - `input` - Saisies et formulaires (fill, type, press, select, check, uncheck, upload)
   - `extract` - Extraction de données (text, attribute, html, list)
-  - `api` - Requêtes API
+  - `api` - Requêtes HTTP/API (GET, POST, PUT, DELETE, PATCH)
   - `pagination` - Gestion avancée de la pagination (click, url, scroll)
   - `loop` - Itération sur des éléments/tableaux
   - `condition` - Branchements conditionnels (if/then/else)
@@ -39,41 +39,75 @@ Outil de scraping générique et configurable, basé sur Playwright.
   - Scroll infini avec détection de fin
   - Limites configurables (maxPages, maxItems)
   - Répétition d'étapes sur chaque page
+- ✅ Requêtes API :
+  - Support méthodes HTTP (GET, POST, PUT, DELETE, PATCH)
+  - Headers dynamiques avec templates
+  - Body avec templating JSON/texte
+  - Types de réponse multiples (json, text, blob, arrayBuffer)
+  - Utilisation automatique des cookies de session du navigateur
+  - Timeouts configurables
+- ✅ Gestion robuste des erreurs :
+  - Système de retry avec exponential backoff
+  - Timeouts configurables (global et par action)
+  - Screenshots automatiques lors des erreurs
+  - Mode continue-on-error (ignorer les erreurs)
+  - Logging détaillé avec contexte complet
+- ✅ Planification et automatisation :
+  - Scheduler avec expressions cron
+  - Support des fuseaux horaires
+  - Mode daemon (exécution en arrière-plan)
+  - Persistence de l'état (reprise après crash)
+  - Historique des exécutions
 - ✅ Export de données :
   - Format JSON (pretty print, append mode)
   - Format CSV (headers, délimiteurs, colonnes)
   - Nommage avec templates ({{date}}, {{time}}, etc.)
   - Sélection et réordonnancement de colonnes
   - Mode append pour fichiers existants
-- ✅ Gestion des retries et timeouts
 
 ## Prérequis
 
-- Node.js 18+ (recommandé)
-- npm ou yarn
+- **Node.js** 18+ (recommandé : v20 LTS)
+- **npm** ou **yarn**
+- Système d'exploitation : Windows, macOS, Linux
 
 ## Installation
 
+### 1. Cloner le projet
+
+```bash
+git clone https://github.com/ArthurBr02/generic-scraper.git
+cd generic-scraper
+```
+
+### 2. Installer les dépendances
+
 ```bash
 npm install
+```
+
+### 3. Installer les navigateurs Playwright
+
+```bash
 npx playwright install chromium
 ```
 
 **Notes :**
-- `npx playwright install` télécharge les navigateurs Playwright nécessaires
-- Sur Windows, utilisez le script `start.bat` pour démarrer rapidement
+- `npx playwright install` télécharge les navigateurs nécessaires (~100 Mo)
+- Pour installer tous les navigateurs : `npx playwright install`
+- Pour un environnement headless Linux : `npx playwright install-deps`
 
 ## Utilisation
 
 ### Lancement basique
 
-Avec la config par défaut (`data/config.json`) :
+Avec la config par défaut ([data/config.json](data/config.json)) :
 
 ```bash
 npm run start
 ```
 
-Ou sur Windows :
+Ou sur Windows avec le script batch :
 
 ```bash
 start.bat
@@ -83,6 +117,32 @@ start.bat
 
 ```bash
 npm run start -- --config ./configs/examples/simple-scrape.json
+```
+
+### Mode scheduling (exécution planifiée)
+
+```bash
+# Lancer le scheduler (selon cron défini dans config)
+npm run start -- --config ./configs/examples/scheduled-config.json --schedule
+
+# Mode daemon (arrière-plan)
+npm run start -- --config ./configs/examples/scheduled-config.json --daemon
+```
+
+### Options CLI complètes
+
+```bash
+# Aide
+npm run start -- --help
+
+# Override du format de sortie
+npm run start -- --config ./data/config.json --format csv
+
+# Mode non-headless (navigateur visible)
+npm run start -- --headless false
+
+# Spécifier le dossier de sortie
+npm run start -- --output ./mes-donnees
 ```
 
 ### Avec variable d'environnement
@@ -184,7 +244,10 @@ generic-scraper/
 ├── src/
 │   ├── index.js              # Point d'entrée CLI
 │   ├── core/
-│   │   └── browser.js        # ✅ Gestion du navigateur Playwright
+│   │   ├── browser.js        # ✅ Gestion du navigateur Playwright
+│   │   ├── scraper.js        # ✅ Orchestrateur principal
+│   │   ├── workflow.js       # ✅ Exécution des workflows
+│   │   └── scheduler.js      # ✅ Planification avec cron
 │   ├── actions/
 │   │   ├── index.js          # ✅ Registre d'actions (factory pattern)
 │   │   ├── navigate.js       # ✅ Action de navigation
@@ -192,17 +255,34 @@ generic-scraper/
 │   │   ├── wait.js           # ✅ Action d'attente
 │   │   ├── scroll.js         # ✅ Action de défilement
 │   │   ├── input.js          # ✅ Action de saisie
-│   │   ├── api.js            # ✅ Requêtes API
-│   │   └── pagination.js     # ✅ Gestion pagination
-│   ├── extractors/           # 🚧 Extracteurs de données
-│   ├── output/               # 🚧 Writers JSON/CSV
+│   │   ├── extract.js        # ✅ Extraction de données
+│   │   ├── api.js            # ✅ Requêtes HTTP/API
+│   │   ├── pagination.js     # ✅ Gestion pagination
+│   │   ├── loop.js           # ✅ Boucles et itérations
+│   │   ├── condition.js      # ✅ Conditions if/else
+│   │   └── subWorkflow.js    # ✅ Sous-workflows
+│   ├── extractors/
+│   │   ├── index.js          # ✅ Registre d'extracteurs
+│   │   ├── text.js           # ✅ Extraction de texte
+│   │   ├── attribute.js      # ✅ Extraction d'attributs
+│   │   ├── html.js           # ✅ Extraction HTML
+│   │   └── list.js           # ✅ Extraction de listes
+│   ├── output/
+│   │   ├── index.js          # ✅ Gestionnaire de sortie
+│   │   ├── json-writer.js    # ✅ Export JSON
+│   │   └── csv-writer.js     # ✅ Export CSV
 │   └── utils/
 │       ├── logger.js         # ✅ Logging avec Winston
 │       ├── configLoader.js   # ✅ Chargeur de configuration
-│       ├── error-handler.js  # ✅ Gestion d'erreurs
-│       └── retry.js          # ✅ Système de retries
+│       ├── error-handler.js  # ✅ Gestion d'erreurs + retry
+│       ├── retry.js          # ✅ Système de retries
+│       └── template.js       # ✅ Moteur de templates
 ├── configs/
-│   └── examples/             # Exemples de configurations
+│   └── examples/             # ✅ Exemples de configurations
+│       ├── api-request-example.json
+│       ├── error-handling-test.json
+│       ├── scheduled-config.json
+│       └── ...
 ├── data/
 │   ├── config.json           # Configuration par défaut
 │   └── schema.json           # Schéma JSON de validation
@@ -210,13 +290,13 @@ generic-scraper/
 │   └── plan.md               # Plan d'implémentation détaillé
 ├── logs/                     # Fichiers de logs (générés)
 ├── output/                   # Résultats du scraping (générés)
+├── screenshots/              # Screenshots d'erreurs (générés)
 ├── package.json
 └── README.md
 ```
 
 **Légende :**
-- ✅ Implémenté et fonctionnel
-- 🚧 En cours de développement
+- ✅ Implémenté et testé
 
 ## Configuration
 
@@ -234,6 +314,11 @@ Le projet est entièrement configurable via JSON. Consultez [documentation/plan.
     "headless": true,
     "timeout": 30000
   },
+  "errorHandling": {
+    "retries": 3,
+    "retryDelay": 1000,
+    "screenshotOnError": true
+  },
   "logging": {
     "level": "info",
     "console": true
@@ -245,6 +330,60 @@ Le projet est entièrement configurable via JSON. Consultez [documentation/plan.
   }
 }
 ```
+
+### Exemple de workflow avec API
+
+```json
+{
+  "name": "api-workflow",
+  "steps": [
+    {
+      "id": "step-1",
+      "name": "Récupérer données API",
+      "type": "api",
+      "config": {
+        "method": "GET",
+        "url": "https://api.example.com/data",
+        "headers": {
+          "Authorization": "Bearer {{token}}"
+        },
+        "responseType": "json",
+        "saveAs": "apiData"
+      }
+    },
+    {
+      "id": "step-2",
+      "name": "Navigation avec données",
+      "type": "navigate",
+      "config": {
+        "url": "https://example.com/page/{{apiData.id}}"
+      }
+    }
+  ]
+}
+```
+
+### Configuration du scheduler
+
+```json
+{
+  "scheduling": {
+    "enabled": true,
+    "cron": "0 */6 * * *",
+    "timezone": "Europe/Paris",
+    "persistState": true,
+    "restartOnCrash": true
+  }
+}
+```
+
+**Expressions cron courantes :**
+- `* * * * *` - Chaque minute
+- `*/5 * * * *` - Toutes les 5 minutes
+- `0 * * * *` - Chaque heure
+- `0 */6 * * *` - Toutes les 6 heures
+- `0 0 * * *` - Chaque jour à minuit
+- `0 9 * * 1` - Chaque lundi à 9h00
 
 ## Scripts disponibles
 
@@ -261,24 +400,6 @@ Le projet est entièrement configurable via JSON. Consultez [documentation/plan.
 - `npm run start` - Lance le scraper avec la config par défaut
 - `npm run dev` - Lance en mode développement
 - `npm run lint` - Vérifie la qualité du code
-
-## Développement
-
-### Phase actuelle : Sprint 2.2 ✅ (2026-01-19)
-
-**Fonctionnalités implémentées :**
-
-- **Sprint 1.1** : Structure de base, gestion des arguments CLI
-- **Sprint 1.2** : Loader de configuration, schéma JSON, actions prototypes, retries
-- **Sprint 1.3** : Système de logging avec Winston (rotation, formats, métadonnées)
-- **Sprint 2.1** : Gestion du navigateur (pool de pages, blocage ressources, contexte)
-- **Sprint 2.2** : Système d'actions complet (navigate, click, wait, scroll, input)
-
-**Prochaines étapes :**
-
-- **Sprint 2.3** : Système d'extraction de données
-- **Sprint 3.1** : Orchestrateur de workflows
-- **Sprint 3.2** : Export JSON/CSV
 
 ### Architecture
 
@@ -297,6 +418,110 @@ Le projet suit une architecture modulaire :
 4. Ouvrez une issue ou PR pour toute modification
 
 ## Fonctionnalités détaillées
+
+### Action API
+
+Effectuez des requêtes HTTP directement depuis vos workflows :
+
+```json
+{
+  "type": "api",
+  "config": {
+    "method": "POST",
+    "url": "https://api.example.com/data",
+    "headers": {
+      "Authorization": "Bearer {{token}}",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "query": "{{searchTerm}}",
+      "limit": 10
+    },
+    "responseType": "json",
+    "saveAs": "apiResponse",
+    "timeout": 5000
+  }
+}
+```
+
+**Méthodes supportées :** GET, POST, PUT, DELETE, PATCH  
+**Types de réponse :** json, text, blob, arrayBuffer  
+**Fonctionnalités :** Templates dans URL/headers/body, cookies automatiques, timeouts
+
+### Gestion des erreurs
+
+Configuration robuste avec retry et screenshots :
+
+```json
+{
+  "errorHandling": {
+    "retries": 3,
+    "retryDelay": 1000,
+    "continueOnError": false,
+    "screenshotOnError": true,
+    "screenshotPath": "./screenshots"
+  }
+}
+```
+
+**Au niveau d'un step :**
+
+```json
+{
+  "type": "click",
+  "continueOnError": true,
+  "retry": {
+    "retries": 5,
+    "delay": 2000,
+    "backoffMultiplier": 2,
+    "screenshotOnError": true
+  },
+  "timeout": 10000,
+  "config": {
+    "selector": "#button"
+  }
+}
+```
+
+**Fonctionnalités :**
+- Exponential backoff (délai x2 à chaque tentative)
+- Screenshots automatiques lors des échecs
+- Mode continue-on-error pour ignorer les erreurs
+- Timeouts configurables globalement et par action
+
+### Scheduler
+
+Planifiez vos scrapings avec des expressions cron :
+
+```bash
+# Lancer en mode scheduler
+node src/index.js --schedule --config ./configs/scheduled.json
+
+# Mode daemon (arrière-plan)
+node src/index.js --daemon --config ./configs/scheduled.json
+```
+
+**Configuration :**
+
+```json
+{
+  "scheduling": {
+    "enabled": true,
+    "cron": "0 */6 * * *",
+    "timezone": "Europe/Paris",
+    "persistState": true,
+    "stateFile": "./scheduler-state.json",
+    "restartOnCrash": true
+  }
+}
+```
+
+**Fonctionnalités :**
+- Expressions cron standard
+- Support des fuseaux horaires
+- Persistence de l'historique
+- Restart automatique après crash
+- Mode daemon avec gestion SIGINT/SIGTERM
 
 ### Logger (Winston)
 
@@ -342,4 +567,4 @@ ISC
 
 ---
 
-*Dernière mise à jour : Sprint 2.2 (2026-01-19)*
+*Dernière mise à jour : Sprint 6.2 (2026-01-20)*

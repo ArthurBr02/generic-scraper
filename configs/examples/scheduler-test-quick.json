@@ -1,0 +1,53 @@
+{
+  "name": "scheduler-test-quick",
+  "version": "1.0.0",
+  "target": {
+    "url": "https://example.com",
+    "baseUrl": "https://example.com"
+  },
+  "browser": {
+    "headless": true,
+    "slowMo": 0,
+    "timeout": 30000,
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "userAgent": null,
+    "locale": "fr-FR"
+  },
+  "performance": {
+    "delayBetweenActions": 200
+  },
+  "errorHandling": {
+    "retries": 2,
+    "retryDelay": 500,
+    "continueOnError": false,
+    "screenshotOnError": true
+  },
+  "logging": {
+    "level": "info",
+    "console": true,
+    "file": {
+      "enabled": true,
+      "path": "./logs/scheduler-test.log"
+    }
+  },
+  "scheduling": {
+    "enabled": true,
+    "cron": "* * * * *",
+    "timezone": "Europe/Paris",
+    "persistState": true,
+    "stateFile": "./scheduler-state.json",
+    "restartOnCrash": true
+  },
+  "workflow": "../../configs/examples/simple-navigation.json",
+  "output": {
+    "format": "json",
+    "path": "./output",
+    "filename": "scheduled-{{date}}-{{time}}",
+    "options": {
+      "pretty": true
+    }
+  }
+}
