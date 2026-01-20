@@ -576,6 +576,363 @@ Appelle un sous-workflow défini.
 
 ---
 
+### 12. `login` - Authentification
+
+Se connecte à un site web avec différentes méthodes d'authentification.
+
+```json
+{
+  "type": "login",
+  "config": {
+    "type": "form",
+    "credentials": {
+      "username": "user@example.com",
+      "password": "motdepasse"
+    },
+    "selectors": {
+      "username": "#email",
+      "password": "#password",
+      "submit": "button[type='submit']",
+      "timeout": 5000
+    },
+    "successSelector": ".user-dashboard",
+    "waitAfterLogin": 2000
+  }
+}
+```
+
+**Types d'authentification :**
+
+#### Login par formulaire (`form`)
+```json
+{
+  "type": "form",
+  "credentials": {
+    "username": "user@example.com",
+    "password": "motdepasse"
+  },
+  "selectors": {
+    "username": "#email",
+    "password": "#password",
+    "submit": "button[type='submit']",
+    "timeout": 5000
+  },
+  "waitForNavigation": true,
+  "navigationTimeout": 10000
+}
+```
+
+**Propriétés :**
+- `credentials.username` (string) : Nom d'utilisateur ou email
+- `credentials.password` (string) : Mot de passe
+- `selectors.username` (string) : Sélecteur du champ username
+- `selectors.password` (string) : Sélecteur du champ password
+- `selectors.submit` (string, optionnel) : Sélecteur du bouton submit
+- `selectors.timeout` (number) : Timeout pour trouver les éléments
+- `waitForNavigation` (boolean) : Attendre la navigation après submit
+- `navigationTimeout` (number) : Timeout pour la navigation
+
+#### Login par token (`token`)
+```json
+{
+  "type": "token",
+  "credentials": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "type": "Bearer"
+  },
+  "storageType": "localStorage",
+  "storageKey": "authToken"
+}
+```
+
+**Propriétés :**
+- `credentials.token` (string) : Token d'authentification
+- `credentials.type` (string) : Type de token (`Bearer`, `JWT`, etc.)
+- `storageType` (string) : Où stocker le token : `localStorage`, `sessionStorage`, `cookie`
+- `storageKey` (string) : Clé de stockage
+- `httpOnly` (boolean) : Pour cookie uniquement
+- `secure` (boolean) : Pour cookie uniquement
+
+#### Login par cookies (`cookie`)
+```json
+{
+  "type": "cookie",
+  "credentials": {
+    "cookies": [
+      {
+        "name": "session_id",
+        "value": "abc123",
+        "domain": "example.com",
+        "path": "/",
+        "httpOnly": true,
+        "secure": true
+      }
+    ]
+  },
+  "reloadAfterCookies": true
+}
+```
+
+**Propriétés :**
+- `credentials.cookies` (array) : Liste des cookies à définir
+- `reloadAfterCookies` (boolean) : Recharger la page après avoir défini les cookies
+
+**Propriétés communes :**
+- `successSelector` (string, optionnel) : Sélecteur pour vérifier le succès du login
+- `waitAfterLogin` (number) : Délai d'attente après le login (ms)
+
+**Exemples d'utilisation :**
+
+Voir les fichiers de configuration :
+- `configs/examples/login-form-example.json` : Login par formulaire
+- `configs/examples/login-token-example.json` : Login par token
+- `configs/examples/login-cookies-example.json` : Login par cookies
+
+---
+
+## Gestion des sessions
+
+### Configuration de session
+
+```json
+{
+  "session": {
+    "enabled": true,
+    "name": "my-session",
+    "persist": true,
+    "restoreOnStart": true,
+    "sessionDir": "./sessions"
+  }
+}
+```
+
+**Propriétés :**
+- `enabled` (boolean) : Activer la gestion de session
+- `name` (string) : Nom unique de la session
+- `persist` (boolean) : Sauvegarder la session sur disque
+- `restoreOnStart` (boolean) : Restaurer la session au démarrage
+- `sessionDir` (string) : Dossier de stockage des sessions
+
+### Utilisation dans les workflows
+
+**Sauvegarder une session :**
+```json
+{
+  "type": "extract",
+  "config": {
+    "type": "script",
+    "script": "async (page, context) => { await context.sessionManager.saveSession('my-session', page); return { saved: true }; }"
+  }
+}
+```
+
+**Restaurer une session :**
+```json
+{
+  "type": "extract",
+  "config": {
+    "type": "script",
+    "script": "async (page, context) => { await context.sessionManager.restoreSession('my-session', page); return { restored: true }; }"
+  }
+}
+```
+
+Une session sauvegarde automatiquement :
+- Les cookies
+- Le localStorage
+- Le sessionStorage
+- L'URL actuelle
+- Des métadonnées personnalisées
+
+---
+
+### 13. `form` - Remplissage de formulaire
+
+Remplit automatiquement des formulaires complexes avec mapping intelligent des champs.
+
+```json
+{
+  "type": "form",
+  "config": {
+    "formSelector": "#contact-form",
+    "fields": {
+      "firstName": {
+        "selector": "#first-name",
+        "value": "Jean",
+        "type": "text"
+      },
+      "email": {
+        "value": "jean@example.com",
+        "type": "email"
+      },
+      "country": {
+        "value": "FR",
+        "type": "select"
+      },
+      "newsletter": {
+        "value": true,
+        "type": "checkbox"
+      }
+    },
+    "submit": true,
+    "submitSelector": "button[type='submit']",
+    "waitAfterSubmit": 2000
+  }
+}
+```
+
+**Propriétés :**
+- `formSelector` (string, optionnel) : Sélecteur du formulaire parent
+- `fields` (object) : Map des champs à remplir
+- `submit` (boolean) : Soumettre le formulaire après remplissage
+- `submitSelector` (string) : Sélecteur du bouton submit
+- `waitAfterSubmit` (number) : Délai après soumission (ms)
+- `validateBefore` (boolean) : Valider avant submit
+
+#### Configuration des champs
+
+**Format simple (nom du champ = valeur) :**
+```json
+{
+  "fields": {
+    "username": "jean_dupont",
+    "email": "jean@example.com",
+    "age": "35"
+  }
+}
+```
+
+**Format détaillé avec options :**
+```json
+{
+  "fields": {
+    "username": {
+      "selector": "[name='username']",
+      "value": "jean_dupont",
+      "type": "text",
+      "wait": true,
+      "timeout": 5000
+    }
+  }
+}
+```
+
+**Propriétés de champ :**
+- `selector` (string) : Sélecteur CSS (défaut: `[name="nom-du-champ"]`)
+- `value` (any) : Valeur à remplir
+- `type` (string) : Type de champ (défaut: `auto` = détection automatique)
+- `wait` (boolean) : Attendre que le champ soit visible
+- `timeout` (number) : Timeout d'attente
+
+#### Types de champs supportés
+
+| Type | Description | Exemple de valeur |
+|------|-------------|-------------------|
+| `text` | Champ texte | `"Bonjour"` |
+| `email` | Email | `"user@example.com"` |
+| `password` | Mot de passe | `"P@ssw0rd"` |
+| `number` | Nombre | `"42"` |
+| `tel` | Téléphone | `"0123456789"` |
+| `url` | URL | `"https://example.com"` |
+| `date` | Date | `"2026-01-20"` |
+| `time` | Heure | `"14:30"` |
+| `datetime-local` | Date et heure | `"2026-01-20T14:30"` |
+| `textarea` | Zone de texte | `"Long texte..."` |
+| `select` | Liste déroulante | `"option1"` ou `["opt1", "opt2"]` |
+| `checkbox` | Case à cocher | `true` ou `false` |
+| `radio` | Bouton radio | `"value"` |
+| `file` | Upload fichier | `"./file.pdf"` ou `["file1.jpg", "file2.png"]` |
+
+#### Exemples d'utilisation
+
+**Formulaire de contact :**
+```json
+{
+  "type": "form",
+  "config": {
+    "formSelector": "#contact-form",
+    "fields": {
+      "name": "Jean Dupont",
+      "email": "jean@example.com",
+      "subject": {
+        "value": "Information",
+        "type": "select"
+      },
+      "message": "Bonjour, je souhaite des informations.",
+      "newsletter": {
+        "value": true,
+        "type": "checkbox"
+      }
+    },
+    "submit": true,
+    "waitAfterSubmit": 2000
+  }
+}
+```
+
+**Formulaire d'inscription avec upload :**
+```json
+{
+  "type": "form",
+  "config": {
+    "fields": {
+      "username": "jean_dupont",
+      "email": "jean@example.com",
+      "password": "SecureP@ss",
+      "dateOfBirth": {
+        "value": "1990-05-15",
+        "type": "date"
+      },
+      "gender": {
+        "selector": "input[name='gender']",
+        "value": "male",
+        "type": "radio"
+      },
+      "avatar": {
+        "value": "./avatar.jpg",
+        "type": "file"
+      },
+      "interests": {
+        "selector": "input[name='interests[]']",
+        "value": ["tech", "sports"],
+        "type": "checkbox"
+      }
+    },
+    "submit": true,
+    "validateBefore": true
+  }
+}
+```
+
+**Sondage multi-pages :**
+```json
+{
+  "type": "form",
+  "config": {
+    "fields": {
+      "satisfaction": {
+        "selector": "input[name='satisfaction']",
+        "value": "5",
+        "type": "radio"
+      },
+      "comments": {
+        "value": "Très satisfait du service",
+        "type": "textarea"
+      }
+    },
+    "submit": true,
+    "submitSelector": ".next-page-btn"
+  }
+}
+```
+
+**Voir aussi les exemples complets :**
+- `configs/examples/form-contact-example.json`
+- `configs/examples/form-registration-example.json`
+- `configs/examples/form-survey-example.json`
+
+---
+
 ## Extracteurs
 
 ### `text` - Texte

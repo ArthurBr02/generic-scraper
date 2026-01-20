@@ -1,0 +1,116 @@
+{
+  "name": "form-contact-example",
+  "description": "Exemple de remplissage de formulaire de contact",
+  
+  "browser": {
+    "type": "chromium",
+    "headless": false,
+    "slowMo": 100
+  },
+
+  "workflows": [
+    {
+      "name": "fill-contact-form",
+      "description": "Remplir et soumettre un formulaire de contact",
+      "steps": [
+        {
+          "id": "step-1",
+          "name": "Naviguer vers la page de contact",
+          "type": "navigate",
+          "config": {
+            "url": "https://example.com/contact",
+            "waitUntil": "networkidle"
+          }
+        },
+        {
+          "id": "step-2",
+          "name": "Remplir le formulaire de contact",
+          "type": "form",
+          "config": {
+            "formSelector": "#contact-form",
+            "fields": {
+              "firstName": {
+                "selector": "#first-name",
+                "value": "Jean",
+                "type": "text"
+              },
+              "lastName": {
+                "selector": "#last-name",
+                "value": "Dupont",
+                "type": "text"
+              },
+              "email": {
+                "selector": "#email",
+                "value": "jean.dupont@example.com",
+                "type": "email"
+              },
+              "phone": {
+                "selector": "#phone",
+                "value": "0123456789",
+                "type": "tel"
+              },
+              "subject": {
+                "selector": "#subject",
+                "value": "Information",
+                "type": "select"
+              },
+              "message": {
+                "selector": "#message",
+                "value": "Bonjour, je souhaiterais obtenir des informations sur vos services.",
+                "type": "textarea"
+              },
+              "newsletter": {
+                "selector": "#newsletter",
+                "value": true,
+                "type": "checkbox"
+              },
+              "consent": {
+                "selector": "#consent",
+                "value": true,
+                "type": "checkbox"
+              }
+            },
+            "submit": true,
+            "submitSelector": "button[type='submit']",
+            "waitAfterSubmit": 2000,
+            "validateBefore": true
+          }
+        },
+        {
+          "id": "step-3",
+          "name": "Vérifier le message de confirmation",
+          "type": "wait",
+          "config": {
+            "type": "selector",
+            "value": ".success-message",
+            "timeout": 5000
+          }
+        },
+        {
+          "id": "step-4",
+          "name": "Extraire le message de confirmation",
+          "type": "extract",
+          "config": {
+            "fields": [
+              {
+                "name": "confirmationMessage",
+                "selector": ".success-message",
+                "type": "text"
+              }
+            ]
+          },
+          "output": "confirmation"
+        }
+      ]
+    }
+  ],
+
+  "output": {
+    "format": "json",
+    "path": "./output",
+    "filename": "contact-form-{{date}}",
+    "options": {
+      "pretty": true
+    }
+  }
+}

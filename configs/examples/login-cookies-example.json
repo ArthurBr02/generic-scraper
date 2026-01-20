@@ -1,0 +1,106 @@
+{
+  "name": "login-cookies-example",
+  "description": "Exemple de workflow avec authentification par cookies prédéfinis",
+  
+  "browser": {
+    "type": "chromium",
+    "headless": false,
+    "timeout": 30000
+  },
+
+  "workflows": [
+    {
+      "name": "restore-session-cookies",
+      "description": "Restaurer une session avec des cookies",
+      "steps": [
+        {
+          "id": "step-1",
+          "name": "Naviguer vers le site",
+          "type": "navigate",
+          "config": {
+            "url": "https://example.com",
+            "waitUntil": "domcontentloaded"
+          }
+        },
+        {
+          "id": "step-2",
+          "name": "Définir les cookies de session",
+          "type": "login",
+          "config": {
+            "type": "cookie",
+            "credentials": {
+              "cookies": [
+                {
+                  "name": "session_id",
+                  "value": "votre-session-id",
+                  "domain": "example.com",
+                  "path": "/",
+                  "httpOnly": true,
+                  "secure": true
+                },
+                {
+                  "name": "user_token",
+                  "value": "votre-user-token",
+                  "domain": "example.com",
+                  "path": "/",
+                  "httpOnly": false,
+                  "secure": true
+                }
+              ]
+            },
+            "reloadAfterCookies": true
+          }
+        },
+        {
+          "id": "step-3",
+          "name": "Vérifier que la session est active",
+          "type": "wait",
+          "config": {
+            "type": "selector",
+            "value": ".user-profile",
+            "timeout": 5000
+          }
+        },
+        {
+          "id": "step-4",
+          "name": "Extraire les données utilisateur",
+          "type": "extract",
+          "config": {
+            "fields": [
+              {
+                "name": "username",
+                "selector": ".user-profile .username",
+                "type": "text"
+              },
+              {
+                "name": "email",
+                "selector": ".user-profile .email",
+                "type": "text"
+              },
+              {
+                "name": "memberSince",
+                "selector": ".user-profile .member-since",
+                "type": "text"
+              }
+            ]
+          },
+          "output": "userProfile"
+        }
+      ]
+    }
+  ],
+
+  "output": {
+    "format": "json",
+    "path": "./output",
+    "filename": "cookie-auth-data-{{date}}",
+    "options": {
+      "pretty": true
+    }
+  },
+
+  "logging": {
+    "level": "info",
+    "console": true
+  }
+}

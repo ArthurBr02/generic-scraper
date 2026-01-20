@@ -1,0 +1,116 @@
+{
+  "name": "login-example",
+  "description": "Exemple de workflow avec authentification par formulaire",
+  
+  "browser": {
+    "type": "chromium",
+    "headless": false,
+    "slowMo": 100,
+    "timeout": 30000
+  },
+
+  "session": {
+    "enabled": true,
+    "name": "my-site-session",
+    "persist": true,
+    "restoreOnStart": true
+  },
+
+  "workflows": [
+    {
+      "name": "login-workflow",
+      "description": "Se connecter au site et extraire des données",
+      "steps": [
+        {
+          "id": "step-1",
+          "name": "Naviguer vers la page de login",
+          "type": "navigate",
+          "config": {
+            "url": "https://example.com/login",
+            "waitUntil": "networkidle"
+          }
+        },
+        {
+          "id": "step-2",
+          "name": "Se connecter avec le formulaire",
+          "type": "login",
+          "config": {
+            "type": "form",
+            "credentials": {
+              "username": "votre-email@example.com",
+              "password": "votre-mot-de-passe"
+            },
+            "selectors": {
+              "username": "#email",
+              "password": "#password",
+              "submit": "button[type='submit']",
+              "timeout": 5000
+            },
+            "successSelector": ".user-dashboard",
+            "waitAfterLogin": 2000,
+            "waitForNavigation": true,
+            "navigationTimeout": 10000
+          }
+        },
+        {
+          "id": "step-3",
+          "name": "Sauvegarder la session",
+          "type": "extract",
+          "config": {
+            "type": "script",
+            "script": "async (page, context) => { await context.sessionManager.saveSession('my-site-session', page); return { saved: true }; }"
+          }
+        },
+        {
+          "id": "step-4",
+          "name": "Naviguer vers la page protégée",
+          "type": "navigate",
+          "config": {
+            "url": "https://example.com/dashboard",
+            "waitUntil": "networkidle"
+          }
+        },
+        {
+          "id": "step-5",
+          "name": "Extraire les données",
+          "type": "extract",
+          "config": {
+            "container": ".data-item",
+            "multiple": true,
+            "fields": [
+              {
+                "name": "title",
+                "selector": ".item-title",
+                "type": "text"
+              },
+              {
+                "name": "value",
+                "selector": ".item-value",
+                "type": "text"
+              }
+            ]
+          },
+          "output": "userData"
+        }
+      ]
+    }
+  ],
+
+  "output": {
+    "format": "json",
+    "path": "./output",
+    "filename": "user-data-{{date}}",
+    "options": {
+      "pretty": true
+    }
+  },
+
+  "logging": {
+    "level": "debug",
+    "console": true,
+    "file": {
+      "enabled": true,
+      "path": "./logs/login-example.log"
+    }
+  }
+}

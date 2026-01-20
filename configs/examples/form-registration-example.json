@@ -1,0 +1,142 @@
+{
+  "name": "form-registration-example",
+  "description": "Exemple de formulaire d'inscription avec upload de fichiers",
+  
+  "browser": {
+    "type": "chromium",
+    "headless": false,
+    "slowMo": 100
+  },
+
+  "workflows": [
+    {
+      "name": "registration-form",
+      "description": "Remplir un formulaire d'inscription complet",
+      "steps": [
+        {
+          "id": "step-1",
+          "name": "Naviguer vers la page d'inscription",
+          "type": "navigate",
+          "config": {
+            "url": "https://example.com/register",
+            "waitUntil": "networkidle"
+          }
+        },
+        {
+          "id": "step-2",
+          "name": "Remplir le formulaire d'inscription",
+          "type": "form",
+          "config": {
+            "formSelector": "#registration-form",
+            "fields": {
+              "username": {
+                "value": "jean_dupont",
+                "type": "text"
+              },
+              "email": {
+                "value": "jean.dupont@example.com",
+                "type": "email"
+              },
+              "password": {
+                "value": "SecureP@ssw0rd123",
+                "type": "password"
+              },
+              "confirmPassword": {
+                "value": "SecureP@ssw0rd123",
+                "type": "password"
+              },
+              "dateOfBirth": {
+                "value": "1990-05-15",
+                "type": "date"
+              },
+              "gender": {
+                "selector": "input[name='gender']",
+                "value": "male",
+                "type": "radio"
+              },
+              "country": {
+                "value": "FR",
+                "type": "select"
+              },
+              "bio": {
+                "value": "Passionné de technologie et d'innovation.",
+                "type": "textarea"
+              },
+              "interests": {
+                "selector": "input[name='interests[]']",
+                "value": ["technology", "sports", "music"],
+                "type": "checkbox"
+              },
+              "avatar": {
+                "value": "./data/avatar.jpg",
+                "type": "file"
+              },
+              "termsAccepted": {
+                "value": true,
+                "type": "checkbox"
+              }
+            },
+            "submit": true,
+            "submitSelector": "#submit-btn",
+            "waitAfterSubmit": 3000,
+            "validateBefore": true
+          }
+        },
+        {
+          "id": "step-3",
+          "name": "Attendre la page de profil",
+          "type": "wait",
+          "config": {
+            "type": "url",
+            "pattern": "/profile",
+            "timeout": 10000
+          }
+        },
+        {
+          "id": "step-4",
+          "name": "Extraire les données du profil créé",
+          "type": "extract",
+          "config": {
+            "fields": [
+              {
+                "name": "username",
+                "selector": ".profile-username",
+                "type": "text"
+              },
+              {
+                "name": "email",
+                "selector": ".profile-email",
+                "type": "text"
+              },
+              {
+                "name": "profileUrl",
+                "selector": "meta[property='og:url']",
+                "type": "attribute",
+                "attribute": "content"
+              }
+            ]
+          },
+          "output": "userProfile"
+        }
+      ]
+    }
+  ],
+
+  "output": {
+    "format": "json",
+    "path": "./output",
+    "filename": "registration-{{date}}",
+    "options": {
+      "pretty": true
+    }
+  },
+
+  "logging": {
+    "level": "debug",
+    "console": true,
+    "file": {
+      "enabled": true,
+      "path": "./logs/registration-form.log"
+    }
+  }
+}

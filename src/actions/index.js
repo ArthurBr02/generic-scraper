@@ -176,6 +176,12 @@ function registerBuiltInActions() {
     // Register subWorkflow action
     registerAction('subWorkflow', require('./subWorkflow'));
     
+    // Register login action
+    registerAction('login', require('./login'));
+    
+    // Register form action
+    registerAction('form', require('./form'));
+    
     logger.info(`Registered ${actions.size} built-in actions`);
   } catch (error) {
     logger.warn('Some built-in actions failed to register', { error: error.message });

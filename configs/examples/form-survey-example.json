@@ -1,0 +1,112 @@
+{
+  "name": "form-survey-example",
+  "description": "Exemple de formulaire de sondage avec mapping automatique",
+  
+  "browser": {
+    "type": "chromium",
+    "headless": false
+  },
+
+  "workflows": [
+    {
+      "name": "survey-form",
+      "description": "Remplir un questionnaire de satisfaction",
+      "steps": [
+        {
+          "id": "step-1",
+          "name": "Naviguer vers le sondage",
+          "type": "navigate",
+          "config": {
+            "url": "https://example.com/survey",
+            "waitUntil": "networkidle"
+          }
+        },
+        {
+          "id": "step-2",
+          "name": "Remplir la page 1 du sondage",
+          "type": "form",
+          "config": {
+            "fields": {
+              "name": "Jean Dupont",
+              "age": "35",
+              "occupation": "Développeur",
+              "experience": {
+                "selector": "select[name='experience']",
+                "value": "5-10"
+              },
+              "satisfaction": {
+                "selector": "input[name='satisfaction']",
+                "value": "5",
+                "type": "radio"
+              }
+            },
+            "submit": true,
+            "submitSelector": ".next-page-btn",
+            "waitAfterSubmit": 1000
+          }
+        },
+        {
+          "id": "step-3",
+          "name": "Remplir la page 2 du sondage",
+          "type": "form",
+          "config": {
+            "fields": {
+              "features": {
+                "selector": "input[name='features[]']",
+                "value": ["feature1", "feature3", "feature5"],
+                "type": "checkbox"
+              },
+              "recommendation": {
+                "selector": "input[name='recommendation']",
+                "value": "10",
+                "type": "radio"
+              },
+              "comments": {
+                "selector": "textarea[name='comments']",
+                "value": "Excellent produit, très satisfait du service.",
+                "type": "textarea"
+              },
+              "contact": {
+                "selector": "input[name='contact']",
+                "value": true,
+                "type": "checkbox"
+              }
+            },
+            "submit": true,
+            "submitSelector": ".submit-survey-btn",
+            "waitAfterSubmit": 2000
+          }
+        },
+        {
+          "id": "step-4",
+          "name": "Extraire le message de remerciement",
+          "type": "extract",
+          "config": {
+            "fields": [
+              {
+                "name": "thankYouMessage",
+                "selector": ".thank-you-message",
+                "type": "text"
+              },
+              {
+                "name": "confirmationCode",
+                "selector": ".confirmation-code",
+                "type": "text"
+              }
+            ]
+          },
+          "output": "surveyResult"
+        }
+      ]
+    }
+  ],
+
+  "output": {
+    "format": "json",
+    "path": "./output",
+    "filename": "survey-{{date}}",
+    "options": {
+      "pretty": true
+    }
+  }
+}

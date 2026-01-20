@@ -1,0 +1,94 @@
+{
+  "name": "login-token-example",
+  "description": "Exemple de workflow avec authentification par token Bearer",
+  
+  "browser": {
+    "type": "chromium",
+    "headless": false,
+    "timeout": 30000
+  },
+
+  "workflows": [
+    {
+      "name": "api-with-token",
+      "description": "Utiliser un token Bearer pour accéder à une API",
+      "steps": [
+        {
+          "id": "step-1",
+          "name": "Naviguer vers le site",
+          "type": "navigate",
+          "config": {
+            "url": "https://api.example.com",
+            "waitUntil": "domcontentloaded"
+          }
+        },
+        {
+          "id": "step-2",
+          "name": "Définir le token d'authentification",
+          "type": "login",
+          "config": {
+            "type": "token",
+            "credentials": {
+              "token": "votre-token-jwt-ici",
+              "type": "Bearer"
+            },
+            "storageType": "localStorage",
+            "storageKey": "authToken"
+          }
+        },
+        {
+          "id": "step-3",
+          "name": "Faire une requête API authentifiée",
+          "type": "api",
+          "config": {
+            "method": "GET",
+            "url": "https://api.example.com/user/data",
+            "headers": {
+              "Authorization": "Bearer {{credentials.token}}",
+              "Content-Type": "application/json"
+            }
+          },
+          "output": "apiData"
+        },
+        {
+          "id": "step-4",
+          "name": "Extraire les données depuis la page",
+          "type": "navigate",
+          "config": {
+            "url": "https://example.com/protected-page",
+            "waitUntil": "networkidle"
+          }
+        },
+        {
+          "id": "step-5",
+          "name": "Extraire le contenu protégé",
+          "type": "extract",
+          "config": {
+            "fields": [
+              {
+                "name": "content",
+                "selector": ".protected-content",
+                "type": "text"
+              },
+              {
+                "name": "userName",
+                "selector": ".user-name",
+                "type": "text"
+              }
+            ]
+          },
+          "output": "protectedData"
+        }
+      ]
+    }
+  ],
+
+  "output": {
+    "format": "json",
+    "path": "./output",
+    "filename": "token-auth-data-{{date}}",
+    "options": {
+      "pretty": true
+    }
+  }
+}
