@@ -1,0 +1,112 @@
+{
+  "$schema": "../../src/schemas/workflow.schema.json",
+  "name": "error-handling-test",
+  "description": "Test de la gestion des erreurs avec retry, timeout et screenshots",
+  
+  "steps": [
+    {
+      "id": "step-1",
+      "name": "Navigation réussie",
+      "type": "navigate",
+      "config": {
+        "url": "https://example.com",
+        "waitUntil": "networkidle"
+      }
+    },
+    
+    {
+      "id": "step-2",
+      "name": "Test retry - URL invalide avec continueOnError",
+      "type": "navigate",
+      "continueOnError": true,
+      "retry": {
+        "retries": 2,
+        "delay": 500,
+        "screenshotOnError": true
+      },
+      "config": {
+        "url": "https://invalid-domain-that-does-not-exist-12345.com",
+        "waitUntil": "networkidle"
+      }
+    },
+    
+    {
+      "id": "step-3",
+      "name": "Test timeout personnalisé",
+      "type": "wait",
+      "timeout": 2000,
+      "config": {
+        "duration": 1000
+      }
+    },
+    
+    {
+      "id": "step-4",
+      "name": "Navigation avec retry",
+      "type": "navigate",
+      "retry": {
+        "retries": 3,
+        "delay": 1000,
+        "backoffMultiplier": 2
+      },
+      "config": {
+        "url": "https://httpbin.org/delay/1",
+        "waitUntil": "domcontentloaded"
+      }
+    },
+    
+    {
+      "id": "step-5",
+      "name": "Click sur sélecteur inexistant avec continueOnError",
+      "type": "click",
+      "continueOnError": true,
+      "retry": {
+        "retries": 2,
+        "delay": 500,
+        "screenshotOnError": true
+      },
+      "config": {
+        "selector": "#this-selector-does-not-exist",
+        "timeout": 2000
+      }
+    },
+    
+    {
+      "id": "step-6",
+      "name": "API avec retry sur erreur réseau",
+      "type": "api",
+      "retry": {
+        "retries": 3,
+        "delay": 1000,
+        "backoffMultiplier": 2
+      },
+      "config": {
+        "method": "GET",
+        "url": "https://jsonplaceholder.typicode.com/posts/1",
+        "responseType": "json",
+        "timeout": 5000
+      }
+    },
+    
+    {
+      "id": "step-7",
+      "name": "Extraction avec continueOnError",
+      "type": "extract",
+      "continueOnError": true,
+      "config": {
+        "selector": ".non-existent-element",
+        "type": "text"
+      }
+    },
+    
+    {
+      "id": "step-8",
+      "name": "Test réussite finale",
+      "type": "navigate",
+      "config": {
+        "url": "https://example.com",
+        "waitUntil": "networkidle"
+      }
+    }
+  ]
+}

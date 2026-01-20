@@ -4,6 +4,7 @@
  */
 
 const { getLogger } = require('../utils/logger');
+const { ErrorHandler } = require('../utils/error-handler');
 
 // Action registry map
 const actions = new Map();
@@ -56,7 +57,7 @@ function getActionNames() {
  */
 async function executeAction(page, step, context) {
   const logger = context.logger || getLogger();
-  const { type, config = {}, name, id } = step;
+  const { type, config = {}, name, id, retry, timeout } = step;
 
   if (!type) {
     throw new Error('Action type is required');
@@ -73,8 +74,45 @@ async function executeAction(page, step, context) {
 
   const startTime = Date.now();
 
+  // Get retry configuration from step or global config
+  const globalErrorHandling = context.config?.errorHandling || {};
+  const retryOptions = {
+    retries: retry?.retries ?? globalErrorHandling.retries ?? 3,
+    retryDelay: retry?.delay ?? globalErrorHandling.retryDelay ?? 1000,
+    backoffMultiplier: retry?.backoffMultiplier ?? 2,
+    maxRetryDelay: retry?.maxRetryDelay ?? 30000,
+    continueOnError: step.continueOnError ?? globalErrorHandling.continueOnError ?? false,
+    screenshotOnError: retry?.screenshotOnError ?? globalErrorHandling.screenshotOnError ?? true,
+    screenshotPath: globalErrorHandling.screenshotPath || './screenshots'
+  };
+
+  // Create error handler
+  const errorHandler = new ErrorHandler(retryOptions);
+
   try {
-    const result = await action.execute(page, config, context);
+    // Execute with retry mechanism
+    const result = await errorHandler.execute(
+      async (attempt) => {
+        // Apply timeout if specified
+        if (timeout || config.timeout) {
+          const timeoutMs = timeout || config.timeout;
+          return await Promise.race([
+            action.execute(page, config, context),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error(`Action timeout after ${timeoutMs}ms`)), timeoutMs)
+            )
+          ]);
+        }
+        
+        return await action.execute(page, config, context);
+      },
+      {
+        context: stepLabel,
+        page,
+        logger
+      }
+    );
+
     const duration = Date.now() - startTime;
     
     logger.info(`Action completed: ${stepLabel}`, { 

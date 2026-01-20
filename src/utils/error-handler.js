@@ -108,15 +108,26 @@ class ErrorHandler {
   constructor(options = {}) {
     this.retries = options.retries ?? 3;
     this.retryDelay = options.retryDelay ?? 1000;
+    this.backoffMultiplier = options.backoffMultiplier ?? 2;
+    this.maxRetryDelay = options.maxRetryDelay ?? 30000;
     this.continueOnError = options.continueOnError ?? false;
+    this.screenshotOnError = options.screenshotOnError ?? true;
+    this.screenshotPath = options.screenshotPath ?? './screenshots';
     this.onError = options.onError || null;
     this.onRetry = options.onRetry || null;
   }
 
   /**
-   * Exécute une fonction avec gestion des retries
+   * Exécute une fonction avec gestion des retries et exponential backoff
+   * @param {Function} fn - Function to execute
+   * @param {Object} options - Execution options
+   * @param {string} options.context - Context description
+   * @param {Object} options.page - Playwright page for screenshots
+   * @param {Object} options.logger - Logger instance
+   * @returns {Promise<any>} Function result
    */
-  async execute(fn, context = '') {
+  async execute(fn, options = {}) {
+    const { context = '', page = null, logger = console } = options;
     let lastError;
     
     for (let attempt = 0; attempt <= this.retries; attempt++) {
@@ -124,6 +135,19 @@ class ErrorHandler {
         return await fn(attempt);
       } catch (error) {
         lastError = error;
+        
+        // Log error
+        logger.error(`Attempt ${attempt + 1}/${this.retries + 1} failed`, {
+          context,
+          error: error.message,
+          attempt: attempt + 1,
+          maxAttempts: this.retries + 1
+        });
+        
+        // Take screenshot on error if enabled and page available
+        if (this.screenshotOnError && page && attempt === this.retries) {
+          await this.captureScreenshot(page, error, context, logger);
+        }
         
         // Callback d'erreur
         if (this.onError) {
@@ -133,11 +157,27 @@ class ErrorHandler {
         // Si on est au dernier essai
         if (attempt === this.retries) {
           if (this.continueOnError) {
-            console.warn(`⚠️  Erreur ignorée (continueOnError=true): ${error.message}`);
+            logger.warn(`Error ignored (continueOnError=true)`, {
+              context,
+              error: error.message
+            });
             return null;
           }
           throw error;
         }
+        
+        // Calculate delay with exponential backoff
+        const delay = Math.min(
+          this.retryDelay * Math.pow(this.backoffMultiplier, attempt),
+          this.maxRetryDelay
+        );
+        
+        logger.info(`Retrying in ${delay}ms`, {
+          context,
+          attempt: attempt + 2,
+          maxAttempts: this.retries + 1,
+          delay
+        });
         
         // Callback de retry
         if (this.onRetry) {
@@ -145,11 +185,52 @@ class ErrorHandler {
         }
         
         // Attendre avant de réessayer
-        await new Promise(resolve => setTimeout(resolve, this.retryDelay));
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
     
     throw lastError;
+  }
+
+  /**
+   * Capture screenshot on error
+   * @param {Object} page - Playwright page
+   * @param {Error} error - Error that occurred
+   * @param {string} context - Error context
+   * @param {Object} logger - Logger instance
+   */
+  async captureScreenshot(page, error, context, logger) {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      
+      // Create screenshots directory if it doesn't exist
+      if (!fs.existsSync(this.screenshotPath)) {
+        fs.mkdirSync(this.screenshotPath, { recursive: true });
+      }
+      
+      // Generate filename with timestamp
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const sanitizedContext = context.replace(/[^a-z0-9]/gi, '_').substring(0, 50);
+      const filename = `error_${sanitizedContext}_${timestamp}.png`;
+      const filepath = path.join(this.screenshotPath, filename);
+      
+      // Take screenshot
+      await page.screenshot({ path: filepath, fullPage: true });
+      
+      logger.info(`Screenshot captured`, {
+        path: filepath,
+        context,
+        error: error.message
+      });
+      
+      return filepath;
+    } catch (screenshotError) {
+      logger.warn(`Failed to capture screenshot`, {
+        error: screenshotError.message
+      });
+      return null;
+    }
   }
 
   /**
@@ -190,7 +271,9 @@ class ErrorHandler {
       'ENOTFOUND',
       'ECONNREFUSED',
       'NetworkError',
-      'TimeoutError'
+      'TimeoutError',
+      'Target closed',
+      'Navigation timeout'
     ];
 
     return retryableErrors.some(code => 
@@ -199,6 +282,17 @@ class ErrorHandler {
       error.message.includes(code)
     );
   }
+}
+
+/**
+ * Helper function for retry with exponential backoff
+ * @param {Function} fn - Function to retry
+ * @param {Object} options - Retry options
+ * @returns {Promise<any>} Function result
+ */
+async function withRetry(fn, options = {}) {
+  const handler = new ErrorHandler(options);
+  return handler.execute(fn, options);
 }
 
 module.exports = {
@@ -211,5 +305,6 @@ module.exports = {
   TimeoutError,
   WorkflowError,
   OutputError,
-  ErrorHandler
+  ErrorHandler,
+  withRetry
 };
