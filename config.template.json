@@ -1,0 +1,101 @@
+{
+  "name": "my-scraper",
+  "version": "1.0.0",
+  
+  "target": {
+    "url": "https://example.com",
+    "baseUrl": "https://example.com"
+  },
+
+  "browser": {
+    "type": "chromium",
+    "headless": true,
+    "slowMo": 0,
+    "timeout": 30000,
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "locale": "fr-FR"
+  },
+
+  "performance": {
+    "delayBetweenActions": 500,
+    "resourceBlocking": {
+      "enabled": false,
+      "types": ["image", "font", "media"]
+    }
+  },
+
+  "errorHandling": {
+    "retries": 3,
+    "retryDelay": 1000,
+    "continueOnError": false,
+    "screenshotOnError": true,
+    "screenshotPath": "./screenshots"
+  },
+
+  "logging": {
+    "level": "info",
+    "console": true,
+    "file": {
+      "enabled": true,
+      "path": "./logs/scraper.log",
+      "maxSize": "10m",
+      "maxFiles": 5
+    }
+  },
+
+  "scheduling": {
+    "enabled": false,
+    "cron": "0 */6 * * *",
+    "timezone": "Europe/Paris",
+    "persistState": true,
+    "stateFile": "./scheduler-state.json"
+  },
+
+  "workflow": {
+    "name": "main-workflow",
+    "steps": [
+      {
+        "id": "step-1",
+        "name": "Navigation",
+        "type": "navigate",
+        "config": {
+          "url": "{{target.url}}",
+          "waitUntil": "networkidle"
+        }
+      },
+      {
+        "id": "step-2",
+        "name": "Extract data",
+        "type": "extract",
+        "config": {
+          "selector": ".data-container",
+          "type": "list",
+          "fields": [
+            {
+              "name": "title",
+              "selector": ".title",
+              "type": "text"
+            },
+            {
+              "name": "link",
+              "selector": "a",
+              "type": "attribute",
+              "attribute": "href"
+            }
+          ],
+          "saveAs": "results"
+        }
+      }
+    ]
+  },
+
+  "output": {
+    "format": "json",
+    "path": "./output/{{name}}-{{date}}.json",
+    "pretty": true,
+    "append": false
+  }
+}

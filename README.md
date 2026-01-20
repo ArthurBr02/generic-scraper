@@ -2,6 +2,32 @@
 
 Outil de scraping générique et configurable, basé sur Playwright.
 
+> Automatisez vos extractions de données web sans écrire de code !
+
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org/)
+[![Playwright](https://img.shields.io/badge/playwright-latest-blue)](https://playwright.dev/)
+[![License](https://img.shields.io/badge/license-ISC-blue.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/status-production%20ready-success)](documentation/PROJECT_SUMMARY.md)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue)](documentation/CHANGELOG.md)
+
+---
+
+## 📚 Table des matières
+
+- [Fonctionnalités](#fonctionnalités-principales)
+- [Prérequis](#prérequis)
+- [Installation](#installation)
+- [Démarrage rapide](#démarrage-rapide)
+- [Utilisation](#utilisation)
+- [Configuration](#configuration)
+- [Exemples](#exemples)
+- [Documentation](#documentation)
+- [Architecture](#architecture)
+- [FAQ](#faq)
+- [Contribuer](#contribuer)
+
+> 💡 **Nouveau sur le projet ?** Consultez le [Guide de démarrage rapide](documentation/documentation/QUICKSTART.md) !
+
 ## Fonctionnalités principales
 
 - ✅ Configuration 100% via fichiers JSON
@@ -96,6 +122,56 @@ npx playwright install chromium
 - `npx playwright install` télécharge les navigateurs nécessaires (~100 Mo)
 - Pour installer tous les navigateurs : `npx playwright install`
 - Pour un environnement headless Linux : `npx playwright install-deps`
+
+## Démarrage rapide
+
+### Option 1 : Exemple simple (scraping de texte)
+
+1. Créez un fichier `quick-start.json` :
+
+```json
+{
+  "name": "quick-start",
+  "target": { "url": "https://example.com" },
+  "browser": { "headless": true },
+  "workflow": {
+    "steps": [
+      {
+        "id": "1",
+        "type": "navigate",
+        "config": { "url": "{{target.url}}" }
+      },
+      {
+        "id": "2",
+        "type": "extract",
+        "config": {
+          "selector": "h1",
+          "type": "text",
+          "saveAs": "title"
+        }
+      }
+    ]
+  },
+  "output": {
+    "format": "json",
+    "path": "./output/quick-start.json"
+  }
+}
+```
+
+2. Lancez le scraper :
+
+```bash
+npm run start -- --config quick-start.json
+```
+
+3. Vos données sont dans `output/quick-start.json` !
+
+### Option 2 : Utiliser un exemple pré-configuré
+
+```bash
+npm run start -- --config ./configs/examples/simple-navigation.json
+```
 
 ## Utilisation
 
@@ -385,6 +461,200 @@ Le projet est entièrement configurable via JSON. Consultez [documentation/plan.
 - `0 0 * * *` - Chaque jour à minuit
 - `0 9 * * 1` - Chaque lundi à 9h00
 
+## Exemples
+
+### 1. Scraping simple d'une page
+
+```json
+{
+  "name": "simple-scraping",
+  "target": { "url": "https://books.toscrape.com" },
+  "workflow": {
+    "steps": [
+      {
+        "type": "navigate",
+        "config": { "url": "{{target.url}}" }
+      },
+      {
+        "type": "extract",
+        "config": {
+          "selector": ".product_pod h3 a",
+          "type": "list",
+          "fields": [
+            { "name": "title", "type": "text" },
+            { "name": "url", "type": "attribute", "attribute": "href" }
+          ],
+          "saveAs": "books"
+        }
+      }
+    ]
+  },
+  "output": {
+    "format": "json",
+    "path": "./output/books.json"
+  }
+}
+```
+
+### 2. Pagination automatique
+
+```json
+{
+  "name": "pagination-example",
+  "workflow": {
+    "steps": [
+      {
+        "type": "navigate",
+        "config": { "url": "https://books.toscrape.com" }
+      },
+      {
+        "type": "pagination",
+        "config": {
+          "type": "click",
+          "nextSelector": ".next a",
+          "maxPages": 5,
+          "waitAfterClick": 1000,
+          "repeatSteps": ["extract-books"]
+        }
+      },
+      {
+        "id": "extract-books",
+        "type": "extract",
+        "config": {
+          "selector": ".product_pod",
+          "type": "list",
+          "fields": [
+            { "name": "title", "selector": "h3 a", "type": "text" },
+            { "name": "price", "selector": ".price_color", "type": "text" }
+          ],
+          "saveAs": "books"
+        }
+      }
+    ]
+  }
+}
+```
+
+### 3. Workflow avec conditions
+
+```json
+{
+  "workflow": {
+    "steps": [
+      {
+        "type": "navigate",
+        "config": { "url": "https://example.com" }
+      },
+      {
+        "type": "condition",
+        "config": {
+          "if": {
+            "selector": ".logged-in",
+            "exists": true
+          },
+          "then": [
+            { "type": "click", "config": { "selector": ".profile-button" } }
+          ],
+          "else": [
+            { "type": "navigate", "config": { "url": "/login" } }
+          ]
+        }
+      }
+    ]
+  }
+}
+```
+
+### 4. Boucle sur des éléments
+
+```json
+{
+  "workflow": {
+    "steps": [
+      {
+        "type": "navigate",
+        "config": { "url": "https://example.com/products" }
+      },
+      {
+        "type": "loop",
+        "config": {
+          "selector": ".product-card",
+          "maxIterations": 10,
+          "steps": [
+            {
+              "type": "click",
+              "config": { "selector": ".product-link" }
+            },
+            {
+              "type": "extract",
+              "config": {
+                "selector": ".product-details",
+                "type": "text",
+                "saveAs": "productInfo"
+              }
+            },
+            {
+              "type": "navigate",
+              "config": { "url": "back" }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
+```
+
+### 5. Intégration API
+
+```json
+{
+  "workflow": {
+    "steps": [
+      {
+        "type": "api",
+        "config": {
+          "method": "GET",
+          "url": "https://api.github.com/users/{{username}}",
+          "headers": {
+            "Accept": "application/json"
+          },
+          "responseType": "json",
+          "saveAs": "userData"
+        }
+      },
+      {
+        "type": "navigate",
+        "config": {
+          "url": "https://github.com/{{userData.login}}"
+        }
+      },
+      {
+        "type": "extract",
+        "config": {
+          "selector": ".profile-name",
+          "type": "text",
+          "saveAs": "profileName"
+        }
+      }
+    ]
+  }
+}
+```
+
+Pour plus d'exemples, consultez le dossier [`configs/examples/`](configs/examples/) et la [documentation des exemples](documentation/examples.md).
+
+## Documentation
+
+- � [Démarrage rapide](documentation/QUICKSTART.md) - Guide visuel en 5 minutes
+- 📖 [Plan d'implémentation détaillé](documentation/plan.md)
+- ⚙️ [Guide de configuration complète](documentation/configuration.md)
+- 💡 [Exemples d'utilisation](documentation/examples.md)
+- 🏗️ [Structure du projet](documentation/STRUCTURE.md)
+- 📝 [Changelog](documentation/CHANGELOG.md)
+- 🤝 [Guide de contribution](documentation/CONTRIBUTING.md)
+- 📋 [Template de configuration](config.template.json)
+
 ## Scripts disponibles
 
 ```json
@@ -401,7 +671,7 @@ Le projet est entièrement configurable via JSON. Consultez [documentation/plan.
 - `npm run dev` - Lance en mode développement
 - `npm run lint` - Vérifie la qualité du code
 
-### Architecture
+## Architecture
 
 Le projet suit une architecture modulaire :
 
@@ -410,14 +680,218 @@ Le projet suit une architecture modulaire :
 3. **Utils** : Logging, configuration, gestion d'erreurs
 4. **Configuration** : 100% JSON avec validation via schéma
 
-### Contribuer
+### Diagramme d'architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                     CLI (index.js)                      │
+└─────────────────────┬───────────────────────────────────┘
+                      │
+        ┌─────────────┴─────────────┐
+        │                           │
+┌───────▼────────┐         ┌────────▼────────┐
+│   Scheduler    │         │    Scraper      │
+│  (Planning)    │         │  (Orchestrateur)│
+└────────────────┘         └────────┬────────┘
+                                    │
+                  ┌─────────────────┼─────────────────┐
+                  │                 │                 │
+         ┌────────▼────────┐ ┌──────▼──────┐ ┌───────▼────────┐
+         │    Browser      │ │  Workflow   │ │  OutputWriter  │
+         │   (Playwright)  │ │  (Steps)    │ │  (JSON/CSV)    │
+         └─────────────────┘ └──────┬──────┘ └────────────────┘
+                                    │
+                    ┌───────────────┼───────────────┐
+                    │               │               │
+            ┌───────▼──────┐ ┌──────▼──────┐ ┌─────▼──────┐
+            │   Actions    │ │ Extractors  │ │   Utils    │
+            │ (navigate,   │ │ (text,      │ │ (logger,   │
+            │  click...)   │ │  list...)   │ │  retry...) │
+            └──────────────┘ └─────────────┘ └────────────┘
+```
+
+### Pattern d'action
+
+Toutes les actions suivent le même contrat :
+
+```javascript
+module.exports = {
+  name: 'action-name',
+  description: 'Description de l\'action',
+  
+  /**
+   * Exécute l'action
+   * @param {Page} page - Page Playwright
+   * @param {Object} config - Configuration de l'action
+   * @param {Object} context - Contexte d'exécution (logger, data...)
+   * @returns {Promise<any>} Résultat de l'action
+   */
+  async execute(page, config, context) {
+    // Logique de l'action
+    return result;
+  }
+};
+```
+
+## Contribuer
+
+## Contribuer
+
+Les contributions sont les bienvenues ! 
+
+### Comment contribuer
 
 1. Consultez [documentation/plan.md](documentation/plan.md) pour comprendre l'architecture
-2. Respectez le pattern des actions existantes dans `src/actions/`
-3. Ajoutez des tests pour toute nouvelle fonctionnalité
-4. Ouvrez une issue ou PR pour toute modification
+2. Forkez le projet et créez une branche pour votre fonctionnalité
+3. Respectez le pattern des actions existantes dans `src/actions/`
+4. Testez vos modifications
+5. Ouvrez une Pull Request avec une description détaillée
 
-## Fonctionnalités détaillées
+### Créer une nouvelle action
+
+1. Créez un fichier dans `src/actions/my-action.js`
+2. Suivez le pattern d'action (voir Architecture ci-dessus)
+3. Enregistrez l'action dans `src/actions/index.js`
+4. Ajoutez des tests et de la documentation
+5. Créez un exemple dans `configs/examples/`
+
+### Créer un nouvel extracteur
+
+1. Créez un fichier dans `src/extractors/my-extractor.js`
+2. Implémentez la méthode `extract(element, config, context)`
+3. Enregistrez l'extracteur dans `src/extractors/index.js`
+
+## FAQ
+
+### Comment scraper un site avec authentification ?
+
+Utilisez l'action `input` pour remplir le formulaire de connexion :
+
+```json
+{
+  "steps": [
+    { "type": "navigate", "config": { "url": "https://example.com/login" } },
+    { "type": "input", "config": { "selector": "#username", "value": "{{credentials.username}}", "method": "fill" } },
+    { "type": "input", "config": { "selector": "#password", "value": "{{credentials.password}}", "method": "fill" } },
+    { "type": "click", "config": { "selector": "#login-button" } },
+    { "type": "wait", "config": { "type": "navigation" } }
+  ]
+}
+```
+
+### Comment gérer les pop-ups et cookies ?
+
+Ajoutez un step pour fermer les pop-ups :
+
+```json
+{
+  "type": "click",
+  "continueOnError": true,
+  "config": {
+    "selector": ".cookie-accept-button"
+  }
+}
+```
+
+### Comment scraper des données paginées ?
+
+Utilisez l'action `pagination` avec `repeatSteps` :
+
+```json
+{
+  "type": "pagination",
+  "config": {
+    "type": "click",
+    "nextSelector": ".next-page",
+    "maxPages": 10,
+    "repeatSteps": ["extract-data"]
+  }
+}
+```
+
+### Comment exporter en CSV avec des colonnes spécifiques ?
+
+```json
+{
+  "output": {
+    "format": "csv",
+    "path": "./output/data.csv",
+    "columns": ["title", "price", "url"],
+    "csv": {
+      "delimiter": ";",
+      "includeHeaders": true
+    }
+  }
+}
+```
+
+### Puis-je utiliser des proxies ?
+
+Oui, configurez-les dans la section `browser` :
+
+```json
+{
+  "browser": {
+    "proxy": {
+      "server": "http://proxy.example.com:8080",
+      "username": "user",
+      "password": "pass"
+    }
+  }
+}
+```
+
+## Dépannage
+
+### Le navigateur ne se lance pas
+
+- Vérifiez que Playwright est bien installé : `npx playwright install`
+- Sur Linux, installez les dépendances système : `npx playwright install-deps`
+
+### Les sélecteurs ne trouvent pas les éléments
+
+- Utilisez le mode headless=false pour voir ce qui se passe
+- Ajoutez des `wait` avant les actions
+- Vérifiez les sélecteurs CSS avec les DevTools du navigateur
+
+### Les données extraites sont incorrectes
+
+- Vérifiez le type d'extracteur utilisé (`text` vs `textContent` vs `innerText`)
+- Ajoutez des logs pour débugger : `"logging": { "level": "debug" }`
+
+### Le scraper est lent
+
+- Activez le blocage de ressources : `"resourceBlocking": { "enabled": true }`
+- Réduisez les délais : `"delayBetweenActions": 100`
+- Utilisez le mode headless : `"headless": true`
+
+## Roadmap
+
+- [ ] Interface web de configuration (drag & drop)
+- [ ] Support de Docker
+- [ ] API REST pour déclencher des scrapings
+- [ ] Dashboard de monitoring
+- [ ] Support de plugins personnalisés
+- [ ] Export vers bases de données (MongoDB, PostgreSQL)
+
+## Licence
+
+ISC
+
+---
+
+## Crédits
+
+Développé avec ❤️ en utilisant :
+- [Playwright](https://playwright.dev/) - Automation de navigateur
+- [Winston](https://github.com/winstonjs/winston) - Logging
+- [node-cron](https://github.com/node-cron/node-cron) - Scheduling
+- [json2csv](https://github.com/zemirco/json2csv) - Export CSV
+
+---
+
+*Dernière mise à jour : Sprint 7.1 (2026-01-20)*
+*Version : 1.0.0*
 
 ### Action API
 
