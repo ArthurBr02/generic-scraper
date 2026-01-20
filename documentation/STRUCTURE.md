@@ -9,7 +9,6 @@ generic-scraper/
 ├── 📄 Configuration & Documentation
 │   ├── README.md                    # Documentation principale
 │   ├── CHANGELOG.md                 # Historique des versions
-│   ├── CONTRIBUTING.md              # Guide de contribution
 │   ├── LICENSE                      # Licence ISC
 │   ├── AGENTS.md                    # Suivi du projet
 │   ├── package.json                 # Configuration npm

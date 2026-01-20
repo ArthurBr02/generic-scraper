@@ -354,7 +354,6 @@ configs/examples/
 | **Configuration** | Tous les paramètres disponibles | [configuration.md](documentation/configuration.md) |
 | **Exemples** | Cas d'usage détaillés | [examples.md](documentation/examples.md) |
 | **Structure** | Architecture du projet | [STRUCTURE.md](STRUCTURE.md) |
-| **Contribuer** | Guide pour contributeurs | [CONTRIBUTING.md](CONTRIBUTING.md) |
 
 ---
 

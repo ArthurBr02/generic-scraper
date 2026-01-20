@@ -66,7 +66,6 @@ Generic Scraper est un outil de web scraping complet, configurable à 100% via J
 1. **README.md** - Documentation principale complète
 2. **QUICKSTART.md** - Guide de démarrage rapide visuel
 3. **CHANGELOG.md** - Historique des versions
-4. **CONTRIBUTING.md** - Guide de contribution
 5. **STRUCTURE.md** - Documentation de l'architecture
 6. **LICENSE** - Licence ISC
 7. **AGENTS.md** - Suivi de l'avancement du projet
@@ -174,7 +173,6 @@ Tous dans `configs/examples/` :
 | Créer une config simple | Débutant | JSON basique |
 | Créer un workflow complexe | Intermédiaire | JSON, CSS selectors |
 | Ajouter une action | Avancé | JavaScript, Playwright |
-| Contribuer au core | Expert | Architecture, patterns |
 
 ---
 
@@ -270,7 +268,6 @@ Tous dans `configs/examples/` :
 - 💡 [Exemples détaillés](documentation/examples.md)
 - 🐛 [Signaler un bug](https://github.com/ArthurBr02/generic-scraper/issues)
 - 💬 [Poser une question](https://github.com/ArthurBr02/generic-scraper/issues)
-- 🤝 [Contribuer](CONTRIBUTING.md)
 
 ---
 

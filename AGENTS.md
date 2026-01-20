@@ -14,7 +14,7 @@
 - Guide des exemples d'usage (examples.md)
 - JSDoc présent dans tous les fichiers source
 - Configurations d'exemple validées et documentées
-- Fichiers additionnels créés (QUICKSTART, STRUCTURE, CONTRIBUTING, etc.)
+- Fichiers additionnels créés (QUICKSTART, STRUCTURE, etc.)
 
 ---
 
@@ -31,7 +31,6 @@ Le projet Generic Scraper est maintenant **complet et prêt à l'emploi** !
 | **README.md** | Documentation principale complète | ✅ Terminé |
 | **QUICKSTART.md** | Guide de démarrage rapide visuel | ✅ Terminé |
 | **CHANGELOG.md** | Historique des versions | ✅ Terminé |
-| **CONTRIBUTING.md** | Guide de contribution | ✅ Terminé |
 | **STRUCTURE.md** | Architecture détaillée du projet | ✅ Terminé |
 | **PROJECT_SUMMARY.md** | Résumé complet du projet | ✅ Terminé |
 | **LICENSE** | Licence ISC | ✅ Terminé |
@@ -103,7 +102,7 @@ Le projet Generic Scraper **version 1.0.0** est **complet, documenté et product
 - ✅ Documentation exhaustive
 - ✅ Exemples variés
 - ✅ Code source commenté (JSDoc)
-- ✅ Guides pour utilisateurs et contributeurs
+- ✅ Guides pour utilisateurs
 
 **Le projet est prêt à être utilisé, partagé et étendu !**
 

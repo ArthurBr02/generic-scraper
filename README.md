@@ -24,7 +24,6 @@ Outil de scraping générique et configurable, basé sur Playwright.
 - [Documentation](#documentation)
 - [Architecture](#architecture)
 - [FAQ](#faq)
-- [Contribuer](#contribuer)
 
 > 💡 **Nouveau sur le projet ?** Consultez le [Guide de démarrage rapide](documentation/documentation/QUICKSTART.md) !
 
@@ -652,7 +651,6 @@ Pour plus d'exemples, consultez le dossier [`configs/examples/`](configs/example
 - 💡 [Exemples d'utilisation](documentation/examples.md)
 - 🏗️ [Structure du projet](documentation/STRUCTURE.md)
 - 📝 [Changelog](documentation/CHANGELOG.md)
-- 🤝 [Guide de contribution](documentation/CONTRIBUTING.md)
 - 📋 [Template de configuration](config.template.json)
 
 ## Scripts disponibles
@@ -732,34 +730,6 @@ module.exports = {
   }
 };
 ```
-
-## Contribuer
-
-## Contribuer
-
-Les contributions sont les bienvenues ! 
-
-### Comment contribuer
-
-1. Consultez [documentation/plan.md](documentation/plan.md) pour comprendre l'architecture
-2. Forkez le projet et créez une branche pour votre fonctionnalité
-3. Respectez le pattern des actions existantes dans `src/actions/`
-4. Testez vos modifications
-5. Ouvrez une Pull Request avec une description détaillée
-
-### Créer une nouvelle action
-
-1. Créez un fichier dans `src/actions/my-action.js`
-2. Suivez le pattern d'action (voir Architecture ci-dessus)
-3. Enregistrez l'action dans `src/actions/index.js`
-4. Ajoutez des tests et de la documentation
-5. Créez un exemple dans `configs/examples/`
-
-### Créer un nouvel extracteur
-
-1. Créez un fichier dans `src/extractors/my-extractor.js`
-2. Implémentez la méthode `extract(element, config, context)`
-3. Enregistrez l'extracteur dans `src/extractors/index.js`
 
 ## FAQ
 
