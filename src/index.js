@@ -70,9 +70,16 @@ async function main() {
 
     console.log(`✅ Configuration chargée avec succès: ${config.name || 'sans nom'}`);
     
-    // Charger le workflow si spécifié
+    // Charger le workflow
     let workflowConfig = null;
-    if (config.workflow) {
+    
+    // Si workflows est un tableau (nouveau format), prendre le premier
+    if (config.workflows && Array.isArray(config.workflows) && config.workflows.length > 0) {
+      workflowConfig = config.workflows[0];
+      console.log(`📋 Workflow chargé: ${workflowConfig.name || 'sans nom'}`);
+    }
+    // Si workflow est une string (ancien format), charger depuis fichier
+    else if (config.workflow && typeof config.workflow === 'string') {
       const workflowPath = path.isAbsolute(config.workflow)
         ? config.workflow
         : path.resolve(path.dirname(configPath), config.workflow);
@@ -83,6 +90,11 @@ async function main() {
       } else {
         console.log(`⚠️  Fichier de workflow introuvable: ${workflowPath}`);
       }
+    }
+    // Si workflow est un objet (format inline), l'utiliser directement
+    else if (config.workflow && typeof config.workflow === 'object') {
+      workflowConfig = config.workflow;
+      console.log(`📋 Workflow inline chargé`);
     }
 
     // Créer l'instance du scraper

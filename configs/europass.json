@@ -1,0 +1,97 @@
+{
+  "name": "mon-scraper",
+  "target": {
+    "url": "https://europass.europa.eu/fr/find-jobs?keyword=internship+developer&location=&order=relevance&op=Trouver&form_build_id=form-VDPsJfalDa3mmaV1oqr9JsKFHkgdBxgFt4wENaR55C4&form_id=jobs_search"
+  },
+  "browser": {
+    "headless": false,
+    "timeout": 30000
+  },
+  "errorHandling": {
+    "retries": 3,
+    "retryDelay": 1000,
+    "screenshotOnError": true
+  },
+  "logging": {
+    "level": "debug",
+    "console": true
+  },
+  "workflows": [
+    {
+      "name": "main-workflow",
+      "steps": [
+        {
+          "type": "navigate",
+          "config": {
+            "url": "{{target.url}}",
+            "waitUntil": "networkidle"
+          }
+        },
+        {
+          "type": "wait",
+          "config": {
+            "time": 3000
+          }
+        },
+        {
+          "type": "scroll",
+          "config": {
+            "direction": "down",
+            "pixels": 500
+          }
+        },
+        {
+          "id": "extract-data",  
+          "type": "extract",
+          "config": {
+            "container": ".views-element-container > .row",
+            "multiple": true,
+            "fields": [
+                {
+                    "name": "title",
+                    "selector": ".jobs--title",
+                    "type": "text"
+                },
+                {
+                    "name": "company",
+                    "selector": ".jobs--subtitle",
+                    "type": "text"
+                },
+                {
+                    "name": "location",
+                    "selector": ".field-item",
+                    "type": "text"
+                },
+                {
+                    "name": "description",
+                    "selector": ".field-item__description",
+                    "type": "text"
+                },
+                {
+                    "name": "url",
+                    "selector": ".boxButtonslist a:nth-child(2)",
+                    "type": "attribute",
+                    "attribute": "href"
+                }
+            ]
+          },
+          "output": "europass"
+        },
+        {
+            "type": "pagination",
+            "config": {
+              "type": "click",
+              "nextSelector": ".ecl-pagination__item--next a",
+              "waitAfterClick": 3000,
+              "repeatSteps": ["extract-data"]
+            }
+        }
+      ]
+    }
+  ],
+  "output": {
+    "format": "json",
+    "path": "./output/",
+    "append": true
+  }
+}

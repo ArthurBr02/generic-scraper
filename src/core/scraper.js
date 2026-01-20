@@ -59,7 +59,8 @@ class Scraper {
       const context = {
         logger: this.logger,
         config: this.config,
-        browser: this.browser
+        browser: this.browser,
+        target: this.config.target || {}
       };
 
       // Create and execute workflow

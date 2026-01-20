@@ -3,7 +3,18 @@
  * Extrait plusieurs éléments et leurs sous-champs
  */
 
-const { extract } = require('./index');
+const textExtractor = require('./text');
+const attributeExtractor = require('./attribute');
+const htmlExtractor = require('./html');
+
+/**
+ * Mapping des extracteurs disponibles
+ */
+const extractorMap = {
+  text: textExtractor,
+  attribute: attributeExtractor,
+  html: htmlExtractor
+};
 
 /**
  * Extrait une liste d'éléments avec leurs sous-champs
@@ -50,6 +61,9 @@ async function extractList(element, config, context) {
       const item = {};
 
       try {
+        // Debug: vérifier que l'élément est valide
+        context.logger.debug(`Processing element ${i + 1}/${elementsToProcess.length}`);
+        
         // Extraire chaque champ configuré
         for (const field of fields) {
           const { name, type = 'text', ...fieldConfig } = field;
@@ -59,9 +73,17 @@ async function extractList(element, config, context) {
             continue;
           }
 
+          // Debug: log du champ en cours
+          context.logger.debug(`Extracting field '${name}' with selector '${fieldConfig.selector}' of type '${type}'`);
+
           // Utiliser le système d'extraction pour chaque champ
           try {
-            const value = await extract(el, { type, ...fieldConfig }, context);
+            const extractor = extractorMap[type];
+            if (!extractor) {
+              throw new Error(`Unknown extractor type: ${type}`);
+            }
+            const value = await extractor.extract(el, fieldConfig, context);
+            context.logger.debug(`Field '${name}' extracted: ${value}`);
             item[name] = value;
           } catch (fieldError) {
             context.logger.error(`Failed to extract field '${name}' at index ${i}: ${fieldError.message}`);
