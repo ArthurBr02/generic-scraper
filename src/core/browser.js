@@ -72,16 +72,32 @@ class Browser {
   async createContext(options = {}) {
     const contextOptions = {
       viewport: options.viewport || { width: 1920, height: 1080 },
-      userAgent: options.userAgent || null,
       locale: options.locale || 'fr-FR',
-      timezoneId: options.timezoneId || null,
-      permissions: options.permissions || [],
-      geolocation: options.geolocation || null,
-      colorScheme: options.colorScheme || 'light',
       acceptDownloads: options.acceptDownloads !== false,
       ignoreHTTPSErrors: options.ignoreHTTPSErrors || false,
       ...options.contextOptions
     };
+
+    // Add optional fields only if they have actual values
+    if (options.userAgent && typeof options.userAgent === 'string') {
+      contextOptions.userAgent = options.userAgent;
+    }
+    
+    if (options.timezoneId) {
+      contextOptions.timezoneId = options.timezoneId;
+    }
+    
+    if (options.permissions && Array.isArray(options.permissions)) {
+      contextOptions.permissions = options.permissions;
+    }
+    
+    if (options.geolocation) {
+      contextOptions.geolocation = options.geolocation;
+    }
+    
+    if (options.colorScheme) {
+      contextOptions.colorScheme = options.colorScheme;
+    }
 
     this.logger.debug('Creating browser context', { viewport: contextOptions.viewport });
 

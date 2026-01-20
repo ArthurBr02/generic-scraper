@@ -1,0 +1,47 @@
+{
+  "name": "api-test-config",
+  "version": "1.0.0",
+  "target": {
+    "url": "https://jsonplaceholder.typicode.com",
+    "baseUrl": "https://jsonplaceholder.typicode.com"
+  },
+  "browser": {
+    "headless": true,
+    "slowMo": 0,
+    "timeout": 30000,
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "userAgent": null,
+    "locale": "fr-FR"
+  },
+  "performance": {
+    "delayBetweenActions": 500,
+    "maxConcurrency": 1
+  },
+  "errorHandling": {
+    "retries": 3,
+    "retryDelay": 1000,
+    "continueOnError": false,
+    "screenshotOnError": true
+  },
+  "logging": {
+    "level": "debug",
+    "console": true,
+    "file": {
+      "enabled": true,
+      "path": "./logs/api-test.log"
+    }
+  },
+  "workflow": "../../configs/examples/api-request-example.json",
+  "output": {
+    "format": "json",
+    "path": "./output",
+    "filename": "api-test-{{date}}-{{time}}",
+    "options": {
+      "pretty": true,
+      "append": false
+    }
+  }
+}

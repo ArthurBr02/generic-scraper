@@ -1,0 +1,155 @@
+{
+  "$schema": "../../src/schemas/workflow.schema.json",
+  "name": "api-request-example",
+  "description": "Exemple d'utilisation de l'action API pour effectuer des requêtes HTTP",
+  
+  "steps": [
+    {
+      "id": "step-1",
+      "name": "GET simple",
+      "type": "api",
+      "config": {
+        "method": "GET",
+        "url": "https://jsonplaceholder.typicode.com/posts/1",
+        "responseType": "json",
+        "saveAs": "post"
+      }
+    },
+    
+    {
+      "id": "step-2",
+      "name": "GET avec headers",
+      "type": "api",
+      "config": {
+        "method": "GET",
+        "url": "https://jsonplaceholder.typicode.com/posts",
+        "headers": {
+          "Accept": "application/json",
+          "User-Agent": "GenericScraper/1.0"
+        },
+        "responseType": "json",
+        "saveAs": "posts"
+      }
+    },
+    
+    {
+      "id": "step-3",
+      "name": "POST avec body JSON",
+      "type": "api",
+      "config": {
+        "method": "POST",
+        "url": "https://jsonplaceholder.typicode.com/posts",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "title": "foo",
+          "body": "bar",
+          "userId": 1
+        },
+        "responseType": "json",
+        "saveAs": "newPost"
+      }
+    },
+    
+    {
+      "id": "step-4",
+      "name": "POST avec templates",
+      "type": "api",
+      "config": {
+        "method": "POST",
+        "url": "https://jsonplaceholder.typicode.com/posts",
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer {{apiToken}}"
+        },
+        "body": {
+          "title": "{{post.title}}",
+          "body": "Modified: {{post.body}}",
+          "userId": "{{userId}}"
+        },
+        "responseType": "json",
+        "saveAs": "updatedPost"
+      }
+    },
+    
+    {
+      "id": "step-5",
+      "name": "PUT pour mise à jour",
+      "type": "api",
+      "config": {
+        "method": "PUT",
+        "url": "https://jsonplaceholder.typicode.com/posts/1",
+        "body": {
+          "id": 1,
+          "title": "Updated title",
+          "body": "Updated content",
+          "userId": 1
+        },
+        "responseType": "json"
+      }
+    },
+    
+    {
+      "id": "step-6",
+      "name": "DELETE",
+      "type": "api",
+      "config": {
+        "method": "DELETE",
+        "url": "https://jsonplaceholder.typicode.com/posts/1",
+        "responseType": "json"
+      }
+    },
+    
+    {
+      "id": "step-7",
+      "name": "Réponse texte",
+      "type": "api",
+      "config": {
+        "method": "GET",
+        "url": "https://httpbin.org/html",
+        "responseType": "text",
+        "saveAs": "htmlContent"
+      }
+    },
+    
+    {
+      "id": "step-8",
+      "name": "Avec timeout personnalisé",
+      "type": "api",
+      "config": {
+        "method": "GET",
+        "url": "https://httpbin.org/delay/2",
+        "timeout": 5000,
+        "responseType": "json"
+      }
+    },
+    
+    {
+      "id": "step-9",
+      "name": "Combinaison avec scraping",
+      "type": "navigate",
+      "config": {
+        "url": "https://example.com",
+        "waitUntil": "networkidle"
+      }
+    },
+    
+    {
+      "id": "step-10",
+      "name": "API après authentification navigateur",
+      "type": "api",
+      "optional": true,
+      "config": {
+        "method": "GET",
+        "url": "https://api.example.com/user/profile",
+        "headers": {
+          "Accept": "application/json"
+        },
+        "responseType": "json",
+        "saveAs": "userProfile",
+        "comment": "Les cookies de session du navigateur seront automatiquement utilisés"
+      }
+    }
+  ]
+}
