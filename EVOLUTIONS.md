@@ -3,17 +3,26 @@ Il faut afficher la version en cours dans l'interface (ex: v1.0.0).
 # V2 - Interface utilisateur graphique pour la gestion des tâches de scraping
 ## Ajouter une interface utilisateur graphique (GUI) pour faciliter la configuration et le suivi des tâches de scraping (web ou client lourd ?).
 - Je veux une interface web avec possibilité de faire du drag and drop de blocs (comme n8n par exemple) pour créer des workflows de scraping. TOUS LES BLOCS DOIVENT ETRE PARAMETRABLES.
+- Je veux que chaque bloc soit paramétrable via une interface utilisateur. (par exemple sidebar qui apparaît quand on clique dessus)
+- Il faut une bibliothèque de blocs (ex: extract, navigate, api, etc ...) -> Il faut réutiliser les fonctionnalités utilisables dans les fichiers de configuration.
+- Je veux que les composants soient disposés sur un plateau et que l'on puisse les déplacer, les connecter, etc ...
+- Il faut que les blocs soient connectables entre eux (par exemple un bloc navigate peut être connecté à un bloc extract). Il faut prendre en compte tout la logique et la complexité des configurations (analyser les fichiers dans `configs` pour comprendre)
 - L'interface doit être ergonomique et intuitive, avec des options de configuration claires pour chaque tâche de scraping.
 - Il faut une interface pour gérer les configurations de scraping (ajouter, modifier, supprimer des tâches).
+- L'interface d'accueil sera la liste des tâches de scraping avec un bouton pour créer une nouvelle tâche. Chaque tâche aura un bouton pour la lancer, la modifier, la supprimer, etc ...
+- La page de création/modification d'une tâche sera un plateau avec les blocs et les connexions décris ci-dessus. Il y aura un bouton pour sauvegarder la configuration et la lancer.
+- L'interface doit être minimaliste et prendre en compte les thèmes dark/light.
+- Les exemples de configurations peuvent être trouvés dans `documentation/examples.md`
 ### Stack technique:
-- Frontend: Vue.js avec TypeScript, utilisant des bibliothèques de composants et tailwind CSS pour le style.
-- Backend: Node.js avec Express pour servir l'API et gérer les tâches de scraping.
+- Frontend: Vue.js avec TypeScript, utilisant des bibliothèques de composants et tailwind CSS pour le style. Code dans le dossier `frontend/`.
+- Backend: Node.js avec Express pour servir l'API et gérer les tâches de scraping. Code dans le dossier `backend/`.
 - WebSocket pour la communication en temps réel entre le frontend et le backend.
 - Les configurations seront stockées dans le dossier `config/` au format JSON (elles y sont actuellement).
 - Les logs sont stockés dans le dossier `logs/`.
 - Les outputs sont stockés dans le dossier `output/`.
 - Pas d'authentification pour l'instant, l'utilisateur est supposé être unique.
 - Tout doit tourner sous Docker (backend et frontend). Faire un docker-compose pour lancer les deux conteneurs.
+- Le scraping est fait via le code dans le dossier `src`, utilise ça. Lis le fichier `STRUCTURE.md` pour comprendre comment ça marche.
 
 ### Améliorations futures possibles
 Gestion d'utilisateurs et authentification (ex: OAuth, JWT).

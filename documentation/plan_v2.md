@@ -1,200 +1,209 @@
-# Plan d'implémentation V2 - Interface Utilisateur Graphique
+# Plan d'implémentation V2 - Interface utilisateur graphique
 
-> **Objectif principal** : Créer une interface web avec drag & drop de blocs pour créer des workflows de scraping, comme n8n.
-
----
-
-## 📋 Résumé Exécutif
-
-| Information | Détail |
-|-------------|--------|
-| **Version** | 2.0.0 |
-| **Durée estimée** | 12-14 semaines |
-| **Nombre de phases** | 4 |
-| **Nombre de sprints** | 12 |
-| **Stack Frontend** | Vue.js 3 + TypeScript + TailwindCSS |
-| **Stack Backend** | Node.js + Express + WebSocket |
-| **Containerisation** | Docker + Docker Compose |
+> 🎯 **Objectif** : Créer une interface web moderne et intuitive pour la gestion des tâches de scraping avec drag & drop de blocs.
 
 ---
 
-## ⚠️ Note Importante sur l'Architecture
+## 📋 Vue d'ensemble
 
-### Réutilisation du Code Scraper Existant
+### Description du projet
+La V2 introduit une interface utilisateur graphique (GUI) web permettant de créer, configurer et gérer des workflows de scraping de manière visuelle, similaire à des outils comme n8n ou Node-RED.
 
-**Le backend V2 NE réécrit PAS le moteur de scraping**. Il réutilise le code existant dans `src/` de manière intelligente :
+### Fonctionnalités principales
+- ✅ Éditeur visuel de workflows avec drag & drop
+- ✅ Bibliothèque de blocs paramétrables
+- ✅ Connexions visuelles entre blocs
+- ✅ Gestion des tâches (CRUD)
+- ✅ Exécution et suivi en temps réel
+- ✅ Visualisation des données extraites
+- ✅ Support dark/light mode
 
-#### 🔧 Comment ça fonctionne ?
+### Stack technique
+| Composant | Technologie |
+|-----------|-------------|
+| Frontend | Vue.js 3 (Options API) + TypeScript + Tailwind CSS |
+| Backend | Node.js + Express |
+| Base de données | SQLite (better-sqlite3 ou sqlite3) |
+| Communication temps réel | WebSocket (Socket.io) |
+| Containerisation | Docker + Docker Compose |
+| Stockage configurations | JSON (dossier `configs/`) |
+| Stockage exécutions | SQLite (fichier `data/scraper.db`) |
+| Logs | Dossier `logs/` |
+| Outputs | Dossier `output/` |
 
-1. **Le code scraper existant reste intact** (`src/index.js`, `src/core/`, `src/actions/`, etc.)
-2. **Le backend TypeScript** (`backend/`) agit comme une **couche d'orchestration** :
-   - Il expose une API REST pour gérer les configurations
-   - Il lance les scrapers via `child_process.spawn()` en appelant `node src/index.js --config <path>`
-   - Il capture les logs et la progression via stdout/stderr
-   - Il transmet les événements en temps réel via WebSocket
+### ⚠️ Conventions Vue.js
 
-#### 📦 Architecture en couches
+> **Important** : Le projet utilise **Vue Options API** et non pas Composition API.
 
-```
-┌─────────────────────────────────────────────────────────┐
-│  Frontend Vue.js (Interface graphique)                  │
-│  - Éditeur drag & drop                                  │
-│  - Visualisation logs/données                           │
-└──────────────────┬──────────────────────────────────────┘
-                   │ HTTP/WebSocket
-┌──────────────────▼──────────────────────────────────────┐
-│  Backend Express/TypeScript (Orchestrateur)             │
-│  - API REST (configs, tasks, logs)                      │
-│  - WebSocket (temps réel)                               │
-│  - Gestion des processus                                │
-└──────────────────┬──────────────────────────────────────┘
-                   │ spawn()
-┌──────────────────▼──────────────────────────────────────┐
-│  Scraper Engine (Code existant en CommonJS)             │
-│  - src/index.js (CLI)                                   │
-│  - src/core/scraper.js                                  │
-│  - src/actions/* (11 actions)                           │
-│  - src/extractors/* (4 extractors)                      │
-└─────────────────────────────────────────────────────────┘
-```
+**Règles à respecter** :
+- Utiliser la syntaxe `export default { data(), methods, computed, watch, ... }`
+- Ne **pas** utiliser `<script setup>` ni les fonctions `ref()`, `reactive()`, `computed()` de la Composition API
+- Pinia reste utilisable avec l'Options API via `mapStores`, `mapState`, `mapActions`
+- Les mixins peuvent être utilisés pour la logique réutilisable
 
-#### ✅ Avantages de cette approche
+**Exemple de composant** :
+```vue
+<template>
+  <div class="my-component">
+    <h1>{{ title }}</h1>
+    <button @click="handleClick">{{ buttonText }}</button>
+  </div>
+</template>
 
-- **Pas de réécriture** : Le moteur de scraping fonctionne déjà parfaitement
-- **Isolation** : Chaque tâche de scraping tourne dans son propre processus
-- **Stabilité** : Un crash de scraper n'affecte pas le backend
-- **Compatibilité** : Les configurations JSON existantes fonctionnent sans modification
-- **Évolutivité** : Facile d'ajouter des features au backend sans toucher au scraper
+<script lang="ts">
+import { defineComponent, PropType } from 'vue';
+import { mapState, mapActions } from 'pinia';
+import { useTasksStore } from '@/stores/tasks';
 
-#### 🔄 Flux d'exécution
-
-```
-1. Frontend : Utilisateur crée un workflow via drag & drop
-2. Frontend : Envoie la config JSON au backend (POST /api/configs)
-3. Backend : Sauvegarde la config dans configs/
-4. Frontend : Lance le scraper (POST /api/tasks)
-5. Backend : Exécute `spawn('node', ['src/index.js', '--config', 'configs/my-config.json'])`
-6. Backend : Capture stdout/stderr du processus
-7. Backend : Parse les logs et envoie via WebSocket au frontend
-8. Scraper : S'exécute normalement, écrit dans logs/ et output/
-9. Backend : Détecte la fin du processus, notifie le frontend
-10. Frontend : Affiche les résultats et permet de visualiser les données
-```
-
-#### 🛠️ Implémentation technique (Sprint 3)
-
-Le `ScraperService` du backend sera simple :
-
-```typescript
-class ScraperService {
-  async startScraper(configName: string): Promise<string> {
-    const taskId = generateId();
-    const configPath = path.join(config.dirs.configs, `${configName}.json`);
+export default defineComponent({
+  name: 'MyComponent',
+  
+  props: {
+    title: {
+      type: String as PropType<string>,
+      required: true
+    }
+  },
+  
+  data() {
+    return {
+      buttonText: 'Cliquez-moi',
+      count: 0
+    };
+  },
+  
+  computed: {
+    ...mapState(useTasksStore, ['tasks', 'loading']),
     
-    // Lancer le scraper existant
-    const child = spawn('node', [
-      path.join(config.dirs.scraper, 'index.js'),
-      '--config', configPath
-    ]);
+    doubleCount(): number {
+      return this.count * 2;
+    }
+  },
+  
+  methods: {
+    ...mapActions(useTasksStore, ['fetchTasks']),
     
-    // Capturer les logs
-    child.stdout.on('data', (data) => {
-      this.handleLog(taskId, data.toString());
-    });
-    
-    child.stderr.on('data', (data) => {
-      this.handleError(taskId, data.toString());
-    });
-    
-    child.on('close', (code) => {
-      this.handleComplete(taskId, code);
-    });
-    
-    return taskId;
+    handleClick(): void {
+      this.count++;
+      this.$emit('clicked', this.count);
+    }
+  },
+  
+  mounted() {
+    this.fetchTasks();
   }
+});
+</script>
+
+<style scoped>
+.my-component {
+  padding: 1rem;
 }
-```
-
-Cette approche est **100% faisable** et **recommandée** car elle maximise la réutilisation du code existant.
-
----
-
-## 🏗️ Architecture Globale
-
-```
-generic-scraper/
-├── backend/                    # API Node.js/Express
-│   ├── src/
-│   │   ├── api/               # Routes REST
-│   │   ├── websocket/         # Communication temps réel
-│   │   ├── services/          # Logique métier
-│   │   └── middleware/        # Middlewares Express
-│   ├── Dockerfile
-│   └── package.json
-│
-├── frontend/                   # Interface Vue.js
-│   ├── src/
-│   │   ├── components/        # Composants Vue
-│   │   ├── views/             # Pages
-│   │   ├── stores/            # Pinia stores
-│   │   ├── composables/       # Logique réutilisable
-│   │   └── services/          # API client
-│   ├── Dockerfile
-│   └── package.json
-│
-├── src/                        # Code scraper existant (inchangé)
-├── configs/                    # Configurations JSON
-├── logs/                       # Logs
-├── output/                     # Données extraites
-└── docker-compose.yml          # Orchestration
+</style>
 ```
 
 ---
 
-# 📅 Phase 1 : Infrastructure & Backend API
+## 🗓️ Planning global
 
-> **Objectif** : Mettre en place l'infrastructure Docker et l'API backend de base.
-> 
-> **Durée** : 3 sprints (3 semaines)
+| Phase | Description | Durée estimée | Sprints |
+|-------|-------------|---------------|---------|
+| **Phase 1** | Setup & Infrastructure | 2 semaines | Sprint 1 |
+| **Phase 2** | Interface de base & Gestion des tâches | 3 semaines | Sprint 2-3 |
+| **Phase 3** | Éditeur de workflow visuel | 4 semaines | Sprint 4-6 |
+| **Phase 4** | Exécution & Monitoring temps réel | 2 semaines | Sprint 7 |
+| **Phase 5** | Visualisation des données | 2 semaines | Sprint 8 |
+| **Phase 6** | Polish & Déploiement | 1 semaine | Sprint 9 |
+
+**Durée totale estimée** : ~14 semaines (3.5 mois)
 
 ---
 
-## Sprint 1 : Configuration Docker & Structure Backend
+# 📦 Phase 1 : Setup & Infrastructure
 
-**Durée** : 1 semaine
+> **Objectif** : Mettre en place l'infrastructure de base pour le développement
 
-### Tâches
+## Sprint 1 (2 semaines)
 
-#### 1.1 Configuration Docker Compose
-- [ ] Créer `docker-compose.yml` avec services backend et frontend
-- [ ] Configurer les volumes pour configs/, logs/, output/
-- [ ] Définir le réseau interne Docker
+### 1.1 Initialisation du projet Frontend
+**Durée** : 3 jours
+
+**Tâches** :
+- [ ] Créer le projet Vue.js 3 avec Vite dans `frontend/`
+- [ ] Configurer TypeScript
+- [ ] Installer et configurer Tailwind CSS
+- [ ] Configurer ESLint et Prettier
+- [ ] Créer la structure des dossiers :
+  ```
+  frontend/
+  ├── src/
+  │   ├── components/
+  │   │   ├── common/          # Composants réutilisables (Button, Input, Modal...)
+  │   │   ├── layout/          # Header, Sidebar, Footer
+  │   │   ├── workflow/        # Composants de l'éditeur
+  │   │   └── blocks/          # Composants des blocs
+  │   ├── views/               # Pages principales
+  │   ├── stores/              # Pinia stores (compatibles Options API)
+  │   ├── mixins/              # Mixins Vue réutilisables
+  │   ├── services/            # Services API
+  │   ├── types/               # Types TypeScript
+  │   ├── utils/               # Utilitaires
+  │   └── assets/              # CSS, images
+  ├── public/
+  └── package.json
+  ```
+
+**Livrables** :
+- Projet Vue.js fonctionnel
+- Configuration Tailwind avec système de design (couleurs, espacements, typographie)
+- Composants de base : Button, Input, Card, Modal
+
+---
+
+### 1.2 Initialisation du projet Backend
+**Durée** : 2 jours
+
+**Tâches** :
+- [ ] Créer le projet Express dans `backend/`
+- [ ] Configurer TypeScript (ou ESM natif)
+- [ ] Installer les dépendances : express, cors, socket.io, uuid
+- [ ] Créer la structure des dossiers :
+  ```
+  backend/
+  ├── src/
+  │   ├── routes/              # Routes API REST
+  │   ├── controllers/         # Logique métier
+  │   ├── services/            # Services (scraper, config...)
+  │   ├── middlewares/         # Middlewares Express
+  │   ├── websocket/           # Gestion WebSocket
+  │   ├── types/               # Types TypeScript
+  │   └── utils/               # Utilitaires
+  ├── package.json
+  └── Dockerfile
+  ```
+
+**Livrables** :
+- Serveur Express fonctionnel avec CORS configuré
+- Structure de base des routes
+- Middleware de logging
+
+---
+
+### 1.3 Configuration Docker
+**Durée** : 2 jours
+
+**Tâches** :
+- [ ] Créer `frontend/Dockerfile`
+- [ ] Créer `backend/Dockerfile`
+- [ ] Créer `docker-compose.yml` à la racine
+- [ ] Configurer les volumes pour les dossiers `configs/`, `logs/`, `output/`
 - [ ] Configurer les variables d'environnement
+- [ ] Tester le déploiement local
 
-**Fichiers à créer** :
-```
-docker-compose.yml
-.env.example
-.dockerignore
-```
-
-**docker-compose.yml** :
+**Fichier docker-compose.yml** :
 ```yaml
 version: '3.8'
 services:
-  backend:
-    build: ./backend
-    ports:
-      - "3001:3001"
-    volumes:
-      - ./configs:/app/configs
-      - ./logs:/app/logs
-      - ./output:/app/output
-      - ./src:/app/scraper
-    environment:
-      - NODE_ENV=development
-      - WS_PORT=3002
-    
   frontend:
     build: ./frontend
     ports:
@@ -202,1064 +211,1223 @@ services:
     depends_on:
       - backend
     environment:
-      - VITE_API_URL=http://localhost:3001
-      - VITE_WS_URL=ws://localhost:3002
+      - VITE_API_URL=http://localhost:4000
+      - VITE_WS_URL=ws://localhost:4000
+
+  backend:
+    build: ./backend
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./configs:/app/configs
+      - ./logs:/app/logs
+      - ./output:/app/output
+      - ./src:/app/src
+      - ./data:/app/data          # Base de données SQLite
+    environment:
+      - NODE_ENV=development
+      - PORT=4000
+      - DATABASE_PATH=/app/data/scraper.db
 ```
 
-#### 1.2 Structure Backend
-- [ ] Initialiser le projet Node.js avec TypeScript
-- [ ] Configurer ESLint + Prettier
-- [ ] Créer la structure de dossiers
-- [ ] Configurer le Dockerfile backend
+**Livrables** :
+- Configuration Docker complète
+- Déploiement local fonctionnel avec `docker-compose up`
 
-**Fichiers à créer** :
+---
+
+### 1.4 Intégration du moteur de scraping existant
+**Durée** : 3 jours
+
+> ⚠️ **ATTENTION - Pas de régression CLI**
+> 
+> Le moteur de scraping existant dans `src/` **DOIT continuer à fonctionner en mode CLI**.
+> L'utilisateur doit pouvoir exécuter `npm run start -- --config config.json` exactement comme avant.
+> Le refactoring ne doit ajouter que des exports supplémentaires, sans casser l'existant.
+
+**Stratégie de refactoring** :
+
+```
+                    ┌─────────────────────────────────────┐
+                    │         src/ (Code existant)        │
+                    │    Scraper, Workflow, Actions...    │
+                    └──────────────┬──────────────────────┘
+                                   │
+              ┌────────────────────┼────────────────────┐
+              │                    │                    │
+              ▼                    ▼                    ▼
+    ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+    │   CLI (existant)│  │  Backend API    │  │   Tests         │
+    │   src/index.js  │  │  (nouveau)      │  │   (nouveau)     │
+    └─────────────────┘  └─────────────────┘  └─────────────────┘
+```
+
+**Règles de refactoring** :
+1. ❌ **NE PAS** modifier la signature des fonctions existantes
+2. ❌ **NE PAS** supprimer ou renommer des fichiers dans `src/`
+3. ✅ **AJOUTER** des exports dans les modules existants
+4. ✅ **CRÉER** un fichier `src/lib.js` qui expose une API propre pour le backend
+5. ✅ **TESTER** le CLI après chaque modification
+
+**Tâches** :
+- [ ] Créer `src/lib.js` comme point d'entrée pour l'utilisation comme bibliothèque
+- [ ] Exporter les classes/fonctions nécessaires depuis les modules existants
+- [ ] Créer un service `ScraperService` dans le backend qui utilise `src/lib.js`
+- [ ] Exposer les fonctions principales :
+  - `executeConfig(configPath)` : Exécuter une configuration
+  - `executeConfigObject(config)` : Exécuter une configuration depuis un objet JS
+  - `validateConfig(config)` : Valider une configuration
+  - `getAvailableActions()` : Lister les actions disponibles
+  - `getActionSchema(actionType)` : Récupérer le schéma d'une action
+- [ ] Créer une interface TypeScript pour les configurations
+- [ ] **Vérifier la non-régression CLI** : `npm run start -- --config ./configs/examples/simple-navigation.json`
+
+**Fichier src/lib.js (exemple)** :
+```javascript
+/**
+ * Point d'entrée pour utiliser le scraper comme bibliothèque
+ * NE MODIFIE PAS le comportement CLI existant
+ */
+
+const Scraper = require('./core/scraper');
+const Scheduler = require('./core/scheduler');
+const { loadConfig } = require('./utils/configLoader');
+const actionRegistry = require('./actions');
+
+module.exports = {
+  // Classes principales
+  Scraper,
+  Scheduler,
+  
+  // Utilitaires
+  loadConfig,
+  
+  // Registre des actions
+  getAvailableActions: () => Object.keys(actionRegistry.actions),
+  getActionSchema: (type) => actionRegistry.actions[type]?.schema || null,
+  
+  // Fonction d'exécution simplifiée
+  async execute(config) {
+    const scraper = new Scraper(config);
+    return await scraper.execute();
+  }
+};
+```
+
+**Livrables** :
+- Module scraper intégrable via `src/lib.js`
+- API de base pour l'exécution
+- ✅ CLI toujours fonctionnel (testé)
+
+---
+
+### 1.5 Configuration de la base de données SQLite
+**Durée** : 2 jours
+
+> 💾 **Pourquoi SQLite ?**
+> - Léger, sans serveur séparé
+> - Fichier unique facilement sauvegardable
+> - Performant pour les besoins de l'application
+> - Compatible avec Docker (volume persistant)
+
+**Tâches** :
+- [ ] Installer `better-sqlite3` (synchrone, performant) ou `sqlite3` (asynchrone)
+- [ ] Créer le dossier `data/` à la racine du projet
+- [ ] Créer le service `DatabaseService` pour la gestion de la BDD
+- [ ] Implémenter les migrations automatiques au démarrage
+- [ ] Créer les tables nécessaires (voir schéma ci-dessous)
+
+**Schéma de la base de données** :
+
+```sql
+-- ============================================
+-- Table: executions
+-- Historique des exécutions de tâches
+-- ============================================
+CREATE TABLE IF NOT EXISTS executions (
+  id TEXT PRIMARY KEY,                    -- UUID de l'exécution
+  task_id TEXT NOT NULL,                  -- ID de la tâche (nom du fichier config)
+  task_name TEXT,                         -- Nom lisible de la tâche
+  status TEXT NOT NULL DEFAULT 'pending', -- pending, running, completed, failed, cancelled
+  started_at DATETIME,                    -- Date/heure de début
+  completed_at DATETIME,                  -- Date/heure de fin
+  duration_ms INTEGER,                    -- Durée en millisecondes
+  items_extracted INTEGER DEFAULT 0,      -- Nombre d'éléments extraits
+  error_message TEXT,                     -- Message d'erreur si échec
+  error_stack TEXT,                       -- Stack trace si échec
+  output_file TEXT,                       -- Chemin du fichier de sortie
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_executions_task_id ON executions(task_id);
+CREATE INDEX idx_executions_status ON executions(status);
+CREATE INDEX idx_executions_started_at ON executions(started_at);
+
+-- ============================================
+-- Table: execution_logs
+-- Logs détaillés de chaque exécution
+-- ============================================
+CREATE TABLE IF NOT EXISTS execution_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  execution_id TEXT NOT NULL,             -- Référence à executions.id
+  timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+  level TEXT NOT NULL,                    -- debug, info, warn, error
+  message TEXT NOT NULL,
+  step_id TEXT,                           -- ID de l'étape du workflow
+  step_name TEXT,                         -- Nom de l'étape
+  metadata TEXT,                          -- JSON avec données supplémentaires
+  FOREIGN KEY (execution_id) REFERENCES executions(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_execution_logs_execution_id ON execution_logs(execution_id);
+CREATE INDEX idx_execution_logs_level ON execution_logs(level);
+
+-- ============================================
+-- Table: execution_data
+-- Données extraites par exécution (résumé)
+-- ============================================
+CREATE TABLE IF NOT EXISTS execution_data (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  execution_id TEXT NOT NULL,             -- Référence à executions.id
+  data_key TEXT NOT NULL,                 -- Clé de la donnée (ex: "products", "articles")
+  data_type TEXT,                         -- Type: array, object, string, number
+  item_count INTEGER,                     -- Nombre d'éléments si array
+  sample_data TEXT,                       -- Échantillon JSON (premiers éléments)
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (execution_id) REFERENCES executions(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_execution_data_execution_id ON execution_data(execution_id);
+
+-- ============================================
+-- Table: tasks_metadata
+-- Métadonnées des tâches (stats, dernière exécution)
+-- ============================================
+CREATE TABLE IF NOT EXISTS tasks_metadata (
+  task_id TEXT PRIMARY KEY,               -- ID de la tâche (nom du fichier config)
+  display_name TEXT,                      -- Nom affiché
+  description TEXT,                       -- Description
+  run_count INTEGER DEFAULT 0,            -- Nombre total d'exécutions
+  success_count INTEGER DEFAULT 0,        -- Nombre de succès
+  failure_count INTEGER DEFAULT 0,        -- Nombre d'échecs
+  last_run_at DATETIME,                   -- Dernière exécution
+  last_run_status TEXT,                   -- Statut de la dernière exécution
+  last_run_duration_ms INTEGER,           -- Durée de la dernière exécution
+  avg_duration_ms INTEGER,                -- Durée moyenne
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================
+-- Table: settings
+-- Paramètres de l'application
+-- ============================================
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value TEXT,
+  type TEXT DEFAULT 'string',             -- string, number, boolean, json
+  description TEXT,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Paramètres par défaut
+INSERT OR IGNORE INTO settings (key, value, type, description) VALUES
+  ('app_theme', 'system', 'string', 'Thème de l''application: light, dark, system'),
+  ('max_concurrent_executions', '1', 'number', 'Nombre max d''exécutions simultanées'),
+  ('log_retention_days', '30', 'number', 'Durée de conservation des logs en jours'),
+  ('execution_retention_days', '90', 'number', 'Durée de conservation des exécutions en jours');
+```
+
+**Service DatabaseService (exemple)** :
+
+```javascript
+// backend/src/services/DatabaseService.js
+const Database = require('better-sqlite3');
+const path = require('path');
+const fs = require('fs');
+
+class DatabaseService {
+  constructor(dbPath) {
+    this.dbPath = dbPath || process.env.DATABASE_PATH || './data/scraper.db';
+    
+    // Créer le dossier data/ si nécessaire
+    const dir = path.dirname(this.dbPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    
+    this.db = new Database(this.dbPath);
+    this.db.pragma('journal_mode = WAL');  // Meilleure performance
+    
+    this.runMigrations();
+  }
+  
+  runMigrations() {
+    // Exécuter le schéma SQL ci-dessus
+    const schema = fs.readFileSync('./sql/schema.sql', 'utf8');
+    this.db.exec(schema);
+  }
+  
+  // === Executions ===
+  
+  createExecution(execution) {
+    const stmt = this.db.prepare(`
+      INSERT INTO executions (id, task_id, task_name, status, started_at)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+    return stmt.run(
+      execution.id,
+      execution.taskId,
+      execution.taskName,
+      'running',
+      new Date().toISOString()
+    );
+  }
+  
+  updateExecution(id, data) {
+    const fields = Object.keys(data)
+      .map(k => `${this.camelToSnake(k)} = ?`)
+      .join(', ');
+    const stmt = this.db.prepare(`UPDATE executions SET ${fields} WHERE id = ?`);
+    return stmt.run(...Object.values(data), id);
+  }
+  
+  getExecution(id) {
+    return this.db.prepare('SELECT * FROM executions WHERE id = ?').get(id);
+  }
+  
+  getExecutionsByTask(taskId, limit = 50) {
+    return this.db.prepare(`
+      SELECT * FROM executions 
+      WHERE task_id = ? 
+      ORDER BY started_at DESC 
+      LIMIT ?
+    `).all(taskId, limit);
+  }
+  
+  getRecentExecutions(limit = 50) {
+    return this.db.prepare(`
+      SELECT * FROM executions 
+      ORDER BY started_at DESC 
+      LIMIT ?
+    `).all(limit);
+  }
+  
+  // === Logs ===
+  
+  addLog(executionId, level, message, stepId = null, stepName = null, metadata = null) {
+    const stmt = this.db.prepare(`
+      INSERT INTO execution_logs (execution_id, level, message, step_id, step_name, metadata)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `);
+    return stmt.run(executionId, level, message, stepId, stepName, 
+      metadata ? JSON.stringify(metadata) : null);
+  }
+  
+  getLogsByExecution(executionId) {
+    return this.db.prepare(`
+      SELECT * FROM execution_logs 
+      WHERE execution_id = ? 
+      ORDER BY timestamp ASC
+    `).all(executionId);
+  }
+  
+  // === Task Metadata ===
+  
+  updateTaskStats(taskId, success) {
+    const stmt = this.db.prepare(`
+      INSERT INTO tasks_metadata (task_id, run_count, success_count, failure_count, last_run_at, last_run_status)
+      VALUES (?, 1, ?, ?, datetime('now'), ?)
+      ON CONFLICT(task_id) DO UPDATE SET
+        run_count = run_count + 1,
+        success_count = success_count + ?,
+        failure_count = failure_count + ?,
+        last_run_at = datetime('now'),
+        last_run_status = ?,
+        updated_at = datetime('now')
+    `);
+    const successVal = success ? 1 : 0;
+    const failureVal = success ? 0 : 1;
+    const status = success ? 'completed' : 'failed';
+    return stmt.run(successVal, failureVal, status, successVal, failureVal, status);
+  }
+  
+  // === Settings ===
+  
+  getSetting(key) {
+    const row = this.db.prepare('SELECT value, type FROM settings WHERE key = ?').get(key);
+    if (!row) return null;
+    
+    switch (row.type) {
+      case 'number': return Number(row.value);
+      case 'boolean': return row.value === 'true';
+      case 'json': return JSON.parse(row.value);
+      default: return row.value;
+    }
+  }
+  
+  setSetting(key, value, type = 'string') {
+    const stmt = this.db.prepare(`
+      INSERT INTO settings (key, value, type, updated_at)
+      VALUES (?, ?, ?, datetime('now'))
+      ON CONFLICT(key) DO UPDATE SET value = ?, updated_at = datetime('now')
+    `);
+    const strValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+    return stmt.run(key, strValue, type, strValue);
+  }
+  
+  // === Cleanup ===
+  
+  cleanupOldData() {
+    const logDays = this.getSetting('log_retention_days') || 30;
+    const execDays = this.getSetting('execution_retention_days') || 90;
+    
+    this.db.prepare(`
+      DELETE FROM execution_logs 
+      WHERE timestamp < datetime('now', '-' || ? || ' days')
+    `).run(logDays);
+    
+    this.db.prepare(`
+      DELETE FROM executions 
+      WHERE created_at < datetime('now', '-' || ? || ' days')
+    `).run(execDays);
+  }
+  
+  // Utilitaire
+  camelToSnake(str) {
+    return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+  }
+  
+  close() {
+    this.db.close();
+  }
+}
+
+module.exports = DatabaseService;
+```
+
+**Structure des fichiers** :
 ```
 backend/
 ├── src/
-│   ├── index.ts              # Point d'entrée
-│   ├── app.ts                # Configuration Express
-│   ├── config/
-│   │   └── index.ts          # Configuration centralisée
-│   ├── api/
-│   │   └── routes/
-│   │       └── index.ts      # Routeur principal
-│   ├── middleware/
-│   │   ├── errorHandler.ts   # Gestion des erreurs
-│   │   └── cors.ts           # Configuration CORS
-│   └── types/
-│       └── index.ts          # Types TypeScript
-├── Dockerfile
-├── package.json
-├── tsconfig.json
-└── .eslintrc.js
-```
-
-#### 1.3 Configuration Express de base
-- [ ] Configurer Express avec CORS
-- [ ] Ajouter middleware de logging
-- [ ] Configurer les routes de base
-- [ ] Ajouter endpoint de health check
-
-**Livrables Sprint 1** :
-- ✅ Docker Compose fonctionnel
-- ✅ Backend Express démarrable
-- ✅ Structure de projet établie
-
----
-
-## Sprint 2 : API REST - Gestion des Configurations
-
-**Durée** : 1 semaine
-
-### Tâches
-
-#### 2.1 Service de gestion des fichiers de configuration
-- [ ] Créer `ConfigService` pour CRUD des configurations
-- [ ] Implémenter lecture du dossier configs/
-- [ ] Implémenter sauvegarde de configurations
-- [ ] Implémenter suppression de configurations
-
-**Fichiers à créer** :
-```
-backend/src/services/
-├── configService.ts          # Gestion des fichiers config
-├── validationService.ts      # Validation JSON Schema
-└── index.ts                  # Export des services
-```
-
-**Interface ConfigService** :
-```typescript
-interface ConfigService {
-  listConfigs(): Promise<ConfigSummary[]>;
-  getConfig(name: string): Promise<Config>;
-  saveConfig(name: string, config: Config): Promise<void>;
-  deleteConfig(name: string): Promise<void>;
-  duplicateConfig(name: string, newName: string): Promise<void>;
-  validateConfig(config: Config): ValidationResult;
-}
-```
-
-#### 2.2 Routes API pour les configurations
-- [ ] GET `/api/configs` - Liste des configurations
-- [ ] GET `/api/configs/:name` - Détail d'une configuration
-- [ ] POST `/api/configs` - Créer une configuration
-- [ ] PUT `/api/configs/:name` - Modifier une configuration
-- [ ] DELETE `/api/configs/:name` - Supprimer une configuration
-- [ ] POST `/api/configs/:name/duplicate` - Dupliquer
-
-**Fichiers à créer** :
-```
-backend/src/api/routes/
-├── configs.ts                # Routes configurations
-└── index.ts                  # Routeur principal
-```
-
-#### 2.3 Validation des configurations
-- [ ] Intégrer le schema.json existant
-- [ ] Créer endpoint de validation
-- [ ] POST `/api/configs/validate` - Valider une configuration
-
-**Livrables Sprint 2** :
-- ✅ API CRUD configurations fonctionnelle
-- ✅ Validation JSON Schema intégrée
-- ✅ Tests manuels avec Postman/curl
-
----
-
-## Sprint 3 : API REST - Exécution des Scrapers
-
-**Durée** : 1 semaine
-
-### Tâches
-
-#### 3.1 Service d'exécution des scrapers
-- [ ] Créer `ScraperService` pour lancer des scrapers
-- [ ] Intégrer le code scraper existant (src/)
-- [ ] Gérer les processus enfants (spawn)
-- [ ] Suivre l'état des exécutions en cours
-
-**Fichiers à créer** :
-```
-backend/src/services/
-├── scraperService.ts         # Exécution des scrapers
-├── processManager.ts         # Gestion des processus
-└── taskQueue.ts              # File d'attente des tâches
-```
-
-**Interface ScraperService** :
-```typescript
-interface ScraperService {
-  startScraper(configName: string): Promise<TaskId>;
-  stopScraper(taskId: string): Promise<void>;
-  getTaskStatus(taskId: string): TaskStatus;
-  listRunningTasks(): RunningTask[];
-}
-
-interface TaskStatus {
-  id: string;
-  configName: string;
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
-  startTime: Date;
-  endTime?: Date;
-  progress?: { current: number; total: number };
-  error?: string;
-}
-```
-
-#### 3.2 Routes API pour l'exécution
-- [ ] POST `/api/tasks` - Lancer un scraper
-- [ ] GET `/api/tasks` - Liste des tâches en cours
-- [ ] GET `/api/tasks/:id` - Statut d'une tâche
-- [ ] DELETE `/api/tasks/:id` - Arrêter une tâche
-
-**Fichiers à créer** :
-```
-backend/src/api/routes/
-├── tasks.ts                  # Routes tâches
-└── index.ts                  # Mise à jour routeur
-```
-
-#### 3.3 Service de logs
-- [ ] Créer `LogService` pour lire les logs
-- [ ] GET `/api/logs` - Liste des fichiers de logs
-- [ ] GET `/api/logs/:name` - Contenu d'un fichier de log
-- [ ] GET `/api/logs/:name/tail` - Dernières lignes (pour streaming)
-
-**Fichiers à créer** :
-```
-backend/src/services/
-└── logService.ts             # Lecture des logs
-```
-
-**Livrables Sprint 3** :
-- ✅ Lancement de scrapers via API
-- ✅ Suivi du statut des tâches
-- ✅ Lecture des logs via API
-
----
-
-# 📅 Phase 2 : Communication Temps Réel & Frontend Base
-
-> **Objectif** : Ajouter WebSocket et créer la structure frontend Vue.js.
-> 
-> **Durée** : 3 sprints (3 semaines)
-
----
-
-## Sprint 4 : WebSocket - Communication Temps Réel
-
-**Durée** : 1 semaine
-
-### Tâches
-
-#### 4.1 Configuration WebSocket backend
-- [ ] Installer `ws` ou `socket.io`
-- [ ] Créer serveur WebSocket
-- [ ] Gérer les connexions/déconnexions clients
-- [ ] Implémenter système de rooms (par tâche)
-
-**Fichiers à créer** :
-```
-backend/src/websocket/
-├── server.ts                 # Serveur WebSocket
-├── handlers/
-│   ├── taskHandler.ts        # Événements tâches
-│   └── logHandler.ts         # Événements logs
-├── events.ts                 # Types d'événements
-└── index.ts
-```
-
-**Événements WebSocket** :
-```typescript
-// Événements serveur -> client
-interface ServerEvents {
-  'task:started': { taskId: string; configName: string };
-  'task:progress': { taskId: string; progress: number; message: string };
-  'task:completed': { taskId: string; result: any };
-  'task:failed': { taskId: string; error: string };
-  'log:new': { taskId: string; level: string; message: string; timestamp: Date };
-}
-
-// Événements client -> serveur
-interface ClientEvents {
-  'task:subscribe': { taskId: string };
-  'task:unsubscribe': { taskId: string };
-  'logs:subscribe': { taskId: string };
-  'logs:unsubscribe': { taskId: string };
-}
-```
-
-#### 4.2 Streaming des logs
-- [ ] Créer watcher sur le dossier logs/
-- [ ] Détecter les nouvelles lignes en temps réel
-- [ ] Envoyer les mises à jour via WebSocket
-- [ ] Filtrer par tâche
-
-#### 4.3 Événements de progression
-- [ ] Modifier le scraper pour émettre des événements
-- [ ] Capturer les événements du processus enfant
-- [ ] Transmettre via WebSocket
-
-**Livrables Sprint 4** :
-- ✅ Serveur WebSocket fonctionnel
-- ✅ Streaming des logs en temps réel
-- ✅ Progression des tâches en temps réel
-
----
-
-## Sprint 5 : Structure Frontend Vue.js
-
-**Durée** : 1 semaine
-
-### Tâches
-
-#### 5.1 Initialisation du projet Vue.js
-- [ ] Créer projet avec Vite + Vue 3 + TypeScript
-- [ ] Configurer TailwindCSS
-- [ ] Configurer Vue Router
-- [ ] Configurer Pinia (state management)
-- [ ] Créer Dockerfile frontend
-
-**Commandes** :
-```bash
-npm create vite@latest frontend -- --template vue-ts
-cd frontend
-npm install tailwindcss postcss autoprefixer
-npm install vue-router@4 pinia
-npm install @vueuse/core
-```
-
-**Fichiers à créer** :
-```
-frontend/
-├── src/
-│   ├── main.ts
-│   ├── App.vue
-│   ├── router/
-│   │   └── index.ts          # Configuration routes
-│   ├── stores/
-│   │   ├── config.ts         # Store configurations
-│   │   ├── tasks.ts          # Store tâches
-│   │   └── websocket.ts      # Store WebSocket
 │   ├── services/
-│   │   ├── api.ts            # Client HTTP
-│   │   └── websocket.ts      # Client WebSocket
-│   ├── components/
-│   │   └── layout/
-│   │       ├── AppHeader.vue
-│   │       ├── AppSidebar.vue
-│   │       └── AppLayout.vue
-│   └── views/
-│       ├── DashboardView.vue
-│       ├── ConfigsView.vue
-│       ├── TasksView.vue
-│       └── LogsView.vue
-├── Dockerfile
-├── tailwind.config.js
-├── postcss.config.js
-└── vite.config.ts
+│   │   └── DatabaseService.js
+│   └── ...
+├── sql/
+│   └── schema.sql              # Schéma de la BDD
+└── ...
+
+data/                           # À la racine du projet
+└── scraper.db                  # Fichier SQLite (créé automatiquement)
 ```
 
-#### 5.2 Service API Client
-- [ ] Créer client HTTP avec fetch/axios
-- [ ] Gérer les erreurs API
-- [ ] Typer les réponses
+**Livrables** :
+- Base de données SQLite configurée
+- Service `DatabaseService` opérationnel
+- Migrations automatiques au démarrage
+- Volume Docker persistant pour les données
 
-**Interface API Client** :
+---
+
+# 📦 Phase 2 : Interface de base & Gestion des tâches
+
+> **Objectif** : Créer l'interface d'accueil et la gestion CRUD des tâches
+
+## Sprint 2 (1.5 semaines)
+
+### 2.1 Système de design et composants UI
+**Durée** : 3 jours
+
+**Tâches** :
+- [ ] Configurer Tailwind avec thème dark/light
+- [ ] Créer le store Pinia pour le thème
+- [ ] Créer les composants communs :
+
+| Composant | Description |
+|-----------|-------------|
+| `Button.vue` | Bouton avec variantes (primary, secondary, danger, ghost) |
+| `Input.vue` | Champ de saisie avec label, erreur, icônes |
+| `Select.vue` | Liste déroulante |
+| `Card.vue` | Carte conteneur |
+| `Modal.vue` | Fenêtre modale |
+| `Badge.vue` | Badge de statut |
+| `Toast.vue` | Notifications toast |
+| `Spinner.vue` | Indicateur de chargement |
+| `IconButton.vue` | Bouton avec icône |
+| `Dropdown.vue` | Menu déroulant |
+| `Tooltip.vue` | Info-bulle |
+| `Tabs.vue` | Onglets |
+
+**Livrables** :
+- Bibliothèque de composants documentée
+- Thème dark/light fonctionnel
+
+---
+
+### 2.2 Layout principal
+**Durée** : 2 jours
+
+**Tâches** :
+- [ ] Créer le composant `MainLayout.vue`
+- [ ] Créer le composant `Header.vue` avec :
+  - Logo et titre "Generic Scraper"
+  - Toggle dark/light mode
+  - Version de l'application
+- [ ] Créer le composant `Sidebar.vue` (optionnel pour navigation future)
+- [ ] Configurer Vue Router avec les routes de base
+
+**Routes initiales** :
 ```typescript
-// frontend/src/services/api.ts
-const api = {
-  configs: {
-    list: () => Promise<ConfigSummary[]>,
-    get: (name: string) => Promise<Config>,
-    save: (name: string, config: Config) => Promise<void>,
-    delete: (name: string) => Promise<void>,
-    validate: (config: Config) => Promise<ValidationResult>,
-  },
-  tasks: {
-    start: (configName: string) => Promise<{ taskId: string }>,
-    list: () => Promise<RunningTask[]>,
-    get: (id: string) => Promise<TaskStatus>,
-    stop: (id: string) => Promise<void>,
-  },
-  logs: {
-    list: () => Promise<LogFile[]>,
-    get: (name: string) => Promise<string>,
-  },
-};
+const routes = [
+  { path: '/', name: 'tasks', component: TasksListView },
+  { path: '/task/new', name: 'task-create', component: TaskEditorView },
+  { path: '/task/:id', name: 'task-edit', component: TaskEditorView },
+  { path: '/task/:id/run', name: 'task-run', component: TaskRunView },
+]
 ```
 
-#### 5.3 Service WebSocket Client
-- [ ] Créer client WebSocket réactif
-- [ ] Gérer reconnexion automatique
-- [ ] Intégrer avec Pinia
-
-**Livrables Sprint 5** :
-- ✅ Projet Vue.js configuré
-- ✅ Layout de base fonctionnel
-- ✅ Services API et WebSocket
+**Livrables** :
+- Layout responsive fonctionnel
+- Navigation de base
 
 ---
 
-## Sprint 6 : Pages de Base & Navigation
+### 2.3 API Backend - Gestion des tâches
+**Durée** : 3 jours
 
-**Durée** : 1 semaine
+**Tâches** :
+- [ ] Créer le service `ConfigService` pour manipuler les fichiers JSON
+- [ ] Implémenter les endpoints REST :
 
-### Tâches
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| GET | `/api/tasks` | Lister toutes les tâches |
+| GET | `/api/tasks/:id` | Récupérer une tâche |
+| POST | `/api/tasks` | Créer une nouvelle tâche |
+| PUT | `/api/tasks/:id` | Modifier une tâche |
+| DELETE | `/api/tasks/:id` | Supprimer une tâche |
+| POST | `/api/tasks/:id/run` | Lancer une tâche |
+| POST | `/api/tasks/:id/duplicate` | Dupliquer une tâche |
 
-#### 6.1 Layout Principal
-- [ ] Créer header avec logo et navigation
-- [ ] Créer sidebar avec menu
-- [ ] Créer layout responsive
-- [ ] Ajouter thème sombre (optionnel)
+- [ ] Implémenter la validation des configurations avec le schéma JSON existant
+- [ ] Ajouter la gestion des métadonnées (créé le, modifié le, dernière exécution)
 
-**Composants** :
-```
-frontend/src/components/layout/
-├── AppLayout.vue             # Layout principal
-├── AppHeader.vue             # Header avec nav
-├── AppSidebar.vue            # Sidebar menu
-├── AppBreadcrumb.vue         # Fil d'Ariane
-└── AppFooter.vue             # Footer
-```
-
-#### 6.2 Page Dashboard
-- [ ] Afficher statistiques globales
-- [ ] Liste des tâches récentes
-- [ ] Liste des dernières configurations
-- [ ] Graphiques simples (optionnel)
-
-**Composants** :
-```
-frontend/src/views/
-└── DashboardView.vue
-
-frontend/src/components/dashboard/
-├── StatsCard.vue             # Carte statistique
-├── RecentTasks.vue           # Tâches récentes
-├── RecentConfigs.vue         # Configs récentes
-└── QuickActions.vue          # Actions rapides
-```
-
-#### 6.3 Page Liste des Configurations
-- [ ] Afficher liste des configurations
-- [ ] Actions: ouvrir, dupliquer, supprimer
-- [ ] Filtrer et rechercher
-- [ ] Bouton créer nouvelle config
-
-**Composants** :
-```
-frontend/src/views/
-└── ConfigsView.vue
-
-frontend/src/components/configs/
-├── ConfigsList.vue           # Liste des configs
-├── ConfigCard.vue            # Carte d'une config
-├── ConfigActions.vue         # Actions sur config
-└── ConfigSearch.vue          # Recherche/filtre
-```
-
-#### 6.4 Page Liste des Tâches
-- [ ] Afficher tâches en cours et passées
-- [ ] Statut en temps réel (WebSocket)
-- [ ] Actions: arrêter, voir logs
-- [ ] Filtrer par statut
-
-**Composants** :
-```
-frontend/src/views/
-└── TasksView.vue
-
-frontend/src/components/tasks/
-├── TasksList.vue             # Liste des tâches
-├── TaskCard.vue              # Carte d'une tâche
-├── TaskStatus.vue            # Badge de statut
-├── TaskProgress.vue          # Barre de progression
-└── TaskActions.vue           # Actions sur tâche
-```
-
-**Livrables Sprint 6** :
-- ✅ Navigation complète
-- ✅ Dashboard fonctionnel
-- ✅ Liste configurations
-- ✅ Liste tâches avec temps réel
-
----
-
-# 📅 Phase 3 : Éditeur de Workflow Drag & Drop
-
-> **Objectif** : Créer l'éditeur visuel de workflows avec drag & drop.
-> 
-> **Durée** : 4 sprints (4 semaines)
-
----
-
-## Sprint 7 : Canvas de Workflow - Base
-
-**Durée** : 1 semaine
-
-### Tâches
-
-#### 7.1 Choix et intégration de la bibliothèque
-- [ ] Évaluer les options (Vue Flow, Drawflow, custom)
-- [ ] Installer et configurer la bibliothèque choisie
-- [ ] Créer composant canvas de base
-
-**Options recommandées** :
-1. **Vue Flow** (recommandé) - Fork de React Flow pour Vue 3
-2. **Drawflow** - Léger et simple
-3. **Rete.js** - Puissant mais plus complexe
-
-**Installation** :
-```bash
-npm install @vue-flow/core @vue-flow/background @vue-flow/controls @vue-flow/minimap
-```
-
-**Fichiers à créer** :
-```
-frontend/src/components/workflow/
-├── WorkflowCanvas.vue        # Canvas principal
-├── WorkflowControls.vue      # Contrôles (zoom, reset)
-├── WorkflowMinimap.vue       # Minimap
-└── WorkflowBackground.vue    # Fond (grille)
-```
-
-#### 7.2 Système de nœuds de base
-- [ ] Créer composant nœud générique
-- [ ] Implémenter drag & drop depuis palette
-- [ ] Permettre connexion entre nœuds
-- [ ] Gérer la suppression de nœuds
-
-**Fichiers à créer** :
-```
-frontend/src/components/workflow/nodes/
-├── BaseNode.vue              # Nœud de base
-├── StartNode.vue             # Nœud de départ
-├── EndNode.vue               # Nœud de fin
-└── ActionNode.vue            # Nœud d'action générique
-```
-
-#### 7.3 Store Workflow
-- [ ] Créer store Pinia pour le workflow
-- [ ] Gérer la liste des nœuds
-- [ ] Gérer les connexions (edges)
-- [ ] Historique undo/redo (optionnel)
-
-**Store Workflow** :
+**Structure d'une tâche** :
 ```typescript
-// frontend/src/stores/workflow.ts
-interface WorkflowStore {
-  nodes: Node[];
-  edges: Edge[];
-  selectedNode: Node | null;
-  
-  addNode(type: string, position: Position): void;
-  removeNode(id: string): void;
-  updateNode(id: string, data: Partial<Node>): void;
-  addEdge(source: string, target: string): void;
-  removeEdge(id: string): void;
-  
-  toConfig(): Config;
-  fromConfig(config: Config): void;
+interface Task {
+  id: string;
+  name: string;
+  description?: string;
+  config: ScraperConfig;
+  createdAt: string;
+  updatedAt: string;
+  lastRunAt?: string;
+  lastRunStatus?: 'success' | 'error' | 'running';
+  runCount: number;
 }
 ```
 
-**Livrables Sprint 7** :
-- ✅ Canvas avec grille
-- ✅ Drag & drop de nœuds
-- ✅ Connexions entre nœuds
+**Livrables** :
+- API REST complète pour les tâches
+- Validation des configurations
 
 ---
 
-## Sprint 8 : Palette de Blocs (Actions)
+## Sprint 3 (1.5 semaines)
 
-**Durée** : 1 semaine
+### 2.4 Vue liste des tâches
+**Durée** : 4 jours
 
-### Tâches
-
-#### 8.1 Palette latérale
-- [ ] Créer sidebar de blocs disponibles
-- [ ] Catégoriser les blocs
-- [ ] Permettre drag depuis la palette
-- [ ] Ajouter recherche de blocs
-
-**Fichiers à créer** :
-```
-frontend/src/components/workflow/
-├── BlockPalette.vue          # Palette principale
-├── BlockCategory.vue         # Catégorie de blocs
-├── BlockItem.vue             # Item draggable
-└── BlockSearch.vue           # Recherche
-```
-
-**Catégories et blocs** :
-```typescript
-const blockCategories = [
-  {
-    name: 'Navigation',
-    icon: 'compass',
-    blocks: ['navigate', 'click', 'scroll', 'wait']
-  },
-  {
-    name: 'Données',
-    icon: 'database',
-    blocks: ['extract', 'input']
-  },
-  {
-    name: 'API',
-    icon: 'cloud',
-    blocks: ['api']
-  },
-  {
-    name: 'Contrôle',
-    icon: 'git-branch',
-    blocks: ['pagination', 'loop', 'condition', 'subWorkflow']
+**Tâches** :
+- [ ] Créer le composant `TasksListView.vue`
+- [ ] Créer le composant `TaskCard.vue` avec :
+  - Nom et description de la tâche
+  - Statut de la dernière exécution (badge coloré)
+  - Date de dernière exécution
+  - Boutons d'actions : Lancer, Modifier, Dupliquer, Supprimer
+- [ ] Implémenter la recherche et le filtrage
+- [ ] Ajouter le bouton "Nouvelle tâche"
+- [ ] Créer le store Pinia `useTasksStore` :
+  ```typescript
+  interface TasksState {
+    tasks: Task[];
+    loading: boolean;
+    error: string | null;
+    filters: TaskFilters;
   }
-];
-```
+  ```
+- [ ] Implémenter la pagination côté client
 
-#### 8.2 Création des nœuds pour chaque action
-- [ ] Navigate Node
-- [ ] Click Node
-- [ ] Scroll Node
-- [ ] Wait Node
-- [ ] Input Node
-- [ ] Extract Node
-- [ ] API Node
-- [ ] Pagination Node
-- [ ] Loop Node
-- [ ] Condition Node
-- [ ] SubWorkflow Node
+**Livrables** :
+- Vue liste des tâches fonctionnelle
+- Actions CRUD accessibles
+- Recherche et filtrage
 
-**Fichiers à créer** :
-```
-frontend/src/components/workflow/nodes/
-├── NavigateNode.vue
-├── ClickNode.vue
-├── ScrollNode.vue
-├── WaitNode.vue
-├── InputNode.vue
-├── ExtractNode.vue
-├── ApiNode.vue
-├── PaginationNode.vue
-├── LoopNode.vue
-├── ConditionNode.vue
-└── SubWorkflowNode.vue
-```
+---
 
-#### 8.3 Définition des blocs
-- [ ] Créer fichier de définition pour chaque bloc
-- [ ] Spécifier les ports d'entrée/sortie
-- [ ] Définir les paramètres par défaut
-- [ ] Ajouter icônes et couleurs
+### 2.5 Modal de confirmation et notifications
+**Durée** : 2 jours
 
-**Fichiers à créer** :
-```
-frontend/src/config/blocks/
-├── index.ts                  # Export de tous les blocs
-├── navigate.ts
-├── click.ts
-├── scroll.ts
-├── wait.ts
-├── input.ts
-├── extract.ts
-├── api.ts
-├── pagination.ts
-├── loop.ts
-├── condition.ts
-└── subWorkflow.ts
-```
+**Tâches** :
+- [ ] Créer le composant `ConfirmModal.vue`
+- [ ] Implémenter le système de toast/notifications
+- [ ] Créer le store Pinia `useNotificationStore`
+- [ ] Ajouter les confirmations pour :
+  - Suppression de tâche
+  - Lancement de tâche
+  - Annulation de modifications non sauvegardées
 
-**Exemple de définition** :
+**Livrables** :
+- Système de notifications fonctionnel
+- Confirmations utilisateur
+
+---
+
+# 📦 Phase 3 : Éditeur de workflow visuel
+
+> **Objectif** : Créer l'éditeur de workflow avec drag & drop
+
+## Sprint 4 (1.5 semaines)
+
+### 3.1 Bibliothèque de blocs - Définition
+**Durée** : 3 jours
+
+**Tâches** :
+- [ ] Analyser les actions existantes dans `src/actions/`
+- [ ] Définir la structure des blocs :
+
 ```typescript
-// frontend/src/config/blocks/navigate.ts
-export const navigateBlock: BlockDefinition = {
-  type: 'navigate',
-  category: 'Navigation',
-  label: 'Navigate',
-  icon: 'compass',
-  color: '#3b82f6',
-  description: 'Navigate to a URL',
-  inputs: ['trigger'],
-  outputs: ['success', 'error'],
-  defaultConfig: {
-    url: '',
-    waitUntil: 'networkidle'
-  },
-  configSchema: {
-    url: { type: 'string', required: true, label: 'URL' },
-    waitUntil: { 
-      type: 'select', 
-      options: ['load', 'domcontentloaded', 'networkidle'],
-      default: 'networkidle'
-    }
-  }
+interface BlockDefinition {
+  id: string;
+  type: string;                    // navigate, click, extract, etc.
+  category: BlockCategory;         // trigger, action, extraction, control
+  name: string;                    // Nom affiché
+  description: string;             // Description courte
+  icon: string;                    // Icône
+  color: string;                   // Couleur du bloc
+  inputs: PortDefinition[];        // Ports d'entrée
+  outputs: PortDefinition[];       // Ports de sortie
+  configSchema: ConfigSchema;      // Schéma de configuration
+  defaultConfig: object;           // Configuration par défaut
+}
+
+interface PortDefinition {
+  id: string;
+  name: string;
+  type: 'flow' | 'data';           // flux d'exécution ou données
+  dataType?: string;               // type de données (si data)
+  required: boolean;
+  multiple: boolean;               // permet plusieurs connexions
+}
+
+type BlockCategory = 'trigger' | 'navigation' | 'interaction' | 'extraction' | 'data' | 'control' | 'output';
+```
+
+- [ ] Créer les définitions pour chaque type de bloc :
+
+| Catégorie | Blocs |
+|-----------|-------|
+| **Navigation** | `navigate`, `wait` |
+| **Interaction** | `click`, `input`, `scroll`, `form`, `login` |
+| **Extraction** | `extract` (text, attribute, html, list) |
+| **API** | `api` |
+| **Contrôle** | `loop`, `condition`, `subWorkflow`, `pagination` |
+
+**Livrables** :
+- Fichier de définitions des blocs `blocks.config.ts`
+- Types TypeScript pour les blocs
+
+---
+
+### 3.2 Composant Block
+**Durée** : 3 jours
+
+**Tâches** :
+- [ ] Créer le composant `Block.vue` :
+  - Header avec icône, nom et bouton de suppression
+  - Ports d'entrée (gauche) et de sortie (droite)
+  - Zone centrale avec aperçu de la configuration
+  - États visuels : sélectionné, en cours d'exécution, erreur, succès
+- [ ] Créer les composants de ports :
+  - `InputPort.vue`
+  - `OutputPort.vue`
+- [ ] Gérer le drag & drop des blocs sur le canvas
+
+**Style des blocs par catégorie** :
+```typescript
+const categoryColors = {
+  navigation: 'blue',
+  interaction: 'purple',
+  extraction: 'green',
+  api: 'orange',
+  control: 'yellow',
 };
 ```
 
-**Livrables Sprint 8** :
-- ✅ Palette de blocs complète
-- ✅ Tous les types de nœuds créés
-- ✅ Drag & drop depuis palette
+**Livrables** :
+- Composant Block stylisé et fonctionnel
+- Ports visuels interactifs
 
 ---
 
-## Sprint 9 : Panneau de Configuration des Blocs
+### 3.3 Panneau de blocs (Block Library)
+**Durée** : 2 jours
 
-**Durée** : 1 semaine
+**Tâches** :
+- [ ] Créer le composant `BlockLibrary.vue`
+- [ ] Afficher les blocs par catégorie
+- [ ] Implémenter la recherche de blocs
+- [ ] Rendre les blocs draggables vers le canvas
+- [ ] Afficher une info-bulle de description au survol
 
-### Tâches
-
-#### 9.1 Panneau latéral de propriétés
-- [ ] Créer panneau qui s'affiche à la sélection
-- [ ] Afficher les propriétés du nœud sélectionné
-- [ ] Permettre l'édition des propriétés
-- [ ] Valider les entrées en temps réel
-
-**Fichiers à créer** :
-```
-frontend/src/components/workflow/
-├── NodePropertiesPanel.vue   # Panneau principal
-├── PropertyGroup.vue         # Groupe de propriétés
-└── PropertyField.vue         # Champ de propriété
-```
-
-#### 9.2 Composants de formulaire pour les propriétés
-- [ ] Input texte (simple, URL, selector)
-- [ ] Select (dropdown)
-- [ ] Checkbox
-- [ ] Number input
-- [ ] Éditeur JSON
-- [ ] Champ template avec suggestions
-
-**Fichiers à créer** :
-```
-frontend/src/components/form/
-├── TextInput.vue             # Input texte
-├── SelectInput.vue           # Dropdown
-├── CheckboxInput.vue         # Checkbox
-├── NumberInput.vue           # Nombre
-├── JsonEditor.vue            # Éditeur JSON
-├── TemplateInput.vue         # Input avec {{variables}}
-├── SelectorInput.vue         # Input sélecteur CSS
-└── KeyValueInput.vue         # Paires clé/valeur
-```
-
-#### 9.3 Configuration spécifique par type de bloc
-- [ ] Formulaire Navigate (url, waitUntil, timeout)
-- [ ] Formulaire Click (selector, waitAfter)
-- [ ] Formulaire Scroll (direction, distance, behavior)
-- [ ] Formulaire Wait (type, duration, selector)
-- [ ] Formulaire Input (selector, value, clear)
-- [ ] Formulaire Extract (fields, saveAs, format)
-- [ ] Formulaire API (method, url, headers, body)
-- [ ] Formulaire Pagination (type, selector, maxPages)
-- [ ] Formulaire Loop (selector, variable, steps)
-- [ ] Formulaire Condition (condition, then, else)
-
-**Fichiers à créer** :
-```
-frontend/src/components/workflow/config/
-├── NavigateConfig.vue
-├── ClickConfig.vue
-├── ScrollConfig.vue
-├── WaitConfig.vue
-├── InputConfig.vue
-├── ExtractConfig.vue
-├── ApiConfig.vue
-├── PaginationConfig.vue
-├── LoopConfig.vue
-└── ConditionConfig.vue
-```
-
-#### 9.4 Éditeur de champs Extract
-- [ ] Interface pour ajouter/supprimer des champs
-- [ ] Configuration du type d'extracteur
-- [ ] Configuration des transformations
-- [ ] Preview des sélecteurs
-
-**Fichiers à créer** :
-```
-frontend/src/components/workflow/extract/
-├── FieldsEditor.vue          # Éditeur de champs
-├── FieldRow.vue              # Ligne de champ
-├── ExtractorConfig.vue       # Config extracteur
-└── TransformConfig.vue       # Config transformations
-```
-
-**Livrables Sprint 9** :
-- ✅ Panneau de propriétés fonctionnel
-- ✅ Tous les formulaires de configuration
-- ✅ Validation en temps réel
+**Livrables** :
+- Panneau latéral avec bibliothèque de blocs
+- Drag source fonctionnel
 
 ---
 
-## Sprint 10 : Conversion Workflow ↔ JSON
+## Sprint 5 (1.5 semaines)
 
-**Durée** : 1 semaine
+### 3.4 Canvas de workflow
+**Durée** : 4 jours
 
-### Tâches
+**Tâches** :
+- [ ] Choisir et intégrer une bibliothèque de graphe : **Vue Flow** (recommandé)
+  - Alternative : @vue-flow/core, @antv/g6
+- [ ] Créer le composant `WorkflowCanvas.vue`
+- [ ] Implémenter les fonctionnalités :
+  - Drop des blocs depuis la bibliothèque
+  - Déplacement des blocs sur le canvas
+  - Zoom et pan (défilement)
+  - Sélection simple et multiple
+  - Grille de positionnement (snap to grid)
+  - Mini-map de navigation
 
-#### 10.1 Sérialisation Workflow vers Config JSON
-- [ ] Convertir la structure de nœuds en steps
-- [ ] Gérer l'ordre des étapes (topological sort)
-- [ ] Gérer les blocs imbriqués (pagination, loop, condition)
+**Store du workflow** :
+```typescript
+interface WorkflowState {
+  nodes: Node[];           // Blocs placés
+  edges: Edge[];           // Connexions
+  selectedNodes: string[]; // Nœuds sélectionnés
+  viewport: Viewport;      // Position et zoom
+  isDirty: boolean;        // Modifications non sauvegardées
+}
+```
+
+**Livrables** :
+- Canvas de workflow interactif
+- Placement et déplacement des blocs
+
+---
+
+### 3.5 Connexions entre blocs
+**Durée** : 3 jours
+
+**Tâches** :
+- [ ] Implémenter le dessin des connexions (edges)
+- [ ] Créer la logique de connexion :
+  - Drag depuis un port de sortie vers un port d'entrée
+  - Validation des connexions (types compatibles)
+  - Animation de la ligne pendant le drag
+- [ ] Gérer les états des connexions :
+  - Normal
+  - Survol
+  - Actif (données en transit)
+- [ ] Supprimer les connexions (clic + touche ou menu contextuel)
+
+**Règles de connexion** :
+```typescript
+const connectionRules = {
+  'flow-flow': true,           // flux vers flux
+  'data-data': 'type-match',   // données vers données (types compatibles)
+  'flow-data': false,          // pas de mélange
+};
+```
+
+**Livrables** :
+- Système de connexions fonctionnel
+- Validation des connexions
+
+---
+
+## Sprint 6 (1 semaine)
+
+### 3.6 Panneau de configuration des blocs
+**Durée** : 3 jours
+
+**Tâches** :
+- [ ] Créer le composant `BlockConfigPanel.vue`
+- [ ] Générer dynamiquement le formulaire selon le schéma du bloc
+- [ ] Créer les composants de champs :
+  - `TextField.vue` : Champ texte simple
+  - `TextareaField.vue` : Champ texte multiligne
+  - `SelectField.vue` : Liste déroulante
+  - `CheckboxField.vue` : Case à cocher
+  - `NumberField.vue` : Champ numérique
+  - `CodeField.vue` : Éditeur de code (pour sélecteurs CSS, JSON)
+  - `KeyValueField.vue` : Paires clé-valeur (headers HTTP)
+  - `ArrayField.vue` : Liste d'éléments
+- [ ] Gérer la validation en temps réel
+- [ ] Afficher les erreurs de configuration
+
+**Exemple de schéma pour le bloc "navigate"** :
+```typescript
+const navigateConfigSchema = {
+  fields: [
+    {
+      key: 'url',
+      type: 'text',
+      label: 'URL',
+      required: true,
+      placeholder: 'https://example.com',
+      validation: { pattern: '^https?://' }
+    },
+    {
+      key: 'waitUntil',
+      type: 'select',
+      label: 'Attendre',
+      options: ['load', 'domcontentloaded', 'networkidle'],
+      default: 'load'
+    },
+    {
+      key: 'timeout',
+      type: 'number',
+      label: 'Timeout (ms)',
+      default: 30000,
+      min: 0,
+      max: 120000
+    }
+  ]
+};
+```
+
+**Livrables** :
+- Panneau de configuration dynamique
+- Formulaires pour tous les types de blocs
+
+---
+
+### 3.7 Conversion workflow visuel ↔ JSON
+**Durée** : 2 jours
+
+**Tâches** :
+- [ ] Créer le service `WorkflowConverter`
+- [ ] Implémenter `toConfig()` : Convertit le graphe visuel en JSON de configuration
+- [ ] Implémenter `fromConfig()` : Convertit un JSON existant en graphe visuel
+- [ ] Gérer les cas complexes :
+  - Sous-workflows
+  - Boucles et conditions
+  - Variables et templating
 - [ ] Valider la configuration générée
 
-**Fichiers à créer** :
+**Exemple de conversion** :
 ```
-frontend/src/utils/
-├── workflowSerializer.ts     # Workflow -> JSON
-├── workflowDeserializer.ts   # JSON -> Workflow
-├── topologicalSort.ts        # Tri des nœuds
-└── configValidator.ts        # Validation
-```
+Node "Nav1" (navigate) → Node "Click1" (click) → Node "Extract1" (extract)
 
-**Logique de sérialisation** :
-```typescript
-// frontend/src/utils/workflowSerializer.ts
-interface SerializerResult {
-  config: Config;
-  errors: ValidationError[];
-  warnings: Warning[];
-}
+↓ toConfig()
 
-function serializeWorkflow(workflow: WorkflowState): SerializerResult {
-  // 1. Valider la structure (nœud start, connectivité)
-  // 2. Trier les nœuds (topological sort)
-  // 3. Convertir chaque nœud en step
-  // 4. Gérer les imbrications (loop, condition)
-  // 5. Assembler la config finale
+{
+  "workflow": {
+    "steps": [
+      { "id": "Nav1", "type": "navigate", "config": {...} },
+      { "id": "Click1", "type": "click", "config": {...} },
+      { "id": "Extract1", "type": "extract", "config": {...} }
+    ]
+  }
 }
 ```
 
-#### 10.2 Désérialisation Config JSON vers Workflow
-- [ ] Parser les steps en nœuds
-- [ ] Générer les positions des nœuds (layout automatique)
-- [ ] Créer les connexions
-- [ ] Gérer les structures imbriquées
-
-**Logique de désérialisation** :
-```typescript
-// frontend/src/utils/workflowDeserializer.ts
-interface DeserializerResult {
-  nodes: Node[];
-  edges: Edge[];
-  errors: ValidationError[];
-}
-
-function deserializeConfig(config: Config): DeserializerResult {
-  // 1. Créer nœud Start
-  // 2. Pour chaque step, créer un nœud
-  // 3. Positionner les nœuds avec algorithme de layout
-  // 4. Créer les edges entre nœuds consécutifs
-  // 5. Gérer les branches (condition)
-}
-```
-
-#### 10.3 Import/Export de configurations
-- [ ] Bouton "Importer JSON"
-- [ ] Bouton "Exporter JSON" 
-- [ ] Aperçu JSON en temps réel (optionnel)
-- [ ] Copier dans le presse-papier
-
-**Fichiers à créer** :
-```
-frontend/src/components/workflow/
-├── ImportExportPanel.vue     # Panneau import/export
-├── JsonPreview.vue           # Aperçu JSON
-└── ImportDialog.vue          # Dialog d'import
-```
-
-#### 10.4 Sauvegarde et chargement
-- [ ] Sauvegarder dans le store
-- [ ] Sauvegarder sur le backend
-- [ ] Charger une configuration existante
-- [ ] Détection des modifications non sauvegardées
-
-**Livrables Sprint 10** :
-- ✅ Conversion workflow <-> JSON
-- ✅ Import/export fonctionnel
-- ✅ Sauvegarde/chargement
+**Livrables** :
+- Service de conversion bidirectionnel
+- Support des configurations complexes
 
 ---
 
-# 📅 Phase 4 : Visualisation & Finitions
+# 📦 Phase 4 : Exécution & Monitoring temps réel
 
-> **Objectif** : Ajouter les vues de données, logs temps réel et finaliser.
-> 
-> **Durée** : 2 sprints (2 semaines)
+> **Objectif** : Permettre l'exécution des workflows et le suivi en temps réel
+
+## Sprint 7 (2 semaines)
+
+### 4.1 Configuration WebSocket
+**Durée** : 2 jours
+
+**Tâches** :
+- [ ] Configurer Socket.io côté backend
+- [ ] Créer le service `WebSocketService` côté frontend
+- [ ] Définir les événements :
+
+| Événement | Direction | Description |
+|-----------|-----------|-------------|
+| `task:start` | Client → Server | Démarrer une tâche |
+| `task:stop` | Client → Server | Arrêter une tâche |
+| `task:status` | Server → Client | Mise à jour du statut |
+| `task:progress` | Server → Client | Progression de l'exécution |
+| `task:log` | Server → Client | Nouveau log |
+| `task:step` | Server → Client | Étape en cours |
+| `task:data` | Server → Client | Données extraites |
+| `task:complete` | Server → Client | Fin d'exécution |
+| `task:error` | Server → Client | Erreur survenue |
+
+**Livrables** :
+- Communication WebSocket fonctionnelle
+- Store Pinia pour l'état temps réel
 
 ---
 
-## Sprint 11 : Visualisation des Données & Logs
+### 4.2 Service d'exécution backend
+**Durée** : 3 jours
 
-**Durée** : 1 semaine
+**Tâches** :
+- [ ] Créer le service `ExecutionService`
+- [ ] Intégrer le scraper existant avec émission d'événements
+- [ ] Implémenter la gestion des exécutions concurrentes
+- [ ] Créer une queue d'exécution (file d'attente)
+- [ ] Permettre l'arrêt propre d'une exécution
 
-### Tâches
+**Structure d'une exécution** :
+```typescript
+interface Execution {
+  id: string;
+  taskId: string;
+  status: ExecutionStatus;
+  startedAt: string;
+  completedAt?: string;
+  currentStep?: string;
+  progress: number;          // 0-100
+  logs: LogEntry[];
+  data: Record<string, any>;
+  error?: string;
+}
 
-#### 11.1 Visualiseur de logs en temps réel
-- [ ] Créer composant de logs streaming
-- [ ] Filtrer par niveau (debug, info, warn, error)
-- [ ] Filtrer par tâche
-- [ ] Recherche dans les logs
-- [ ] Export des logs
-
-**Fichiers à créer** :
+type ExecutionStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
 ```
-frontend/src/views/
-└── LogsView.vue
 
-frontend/src/components/logs/
-├── LogsViewer.vue            # Viewer principal
-├── LogLine.vue               # Ligne de log
-├── LogFilter.vue             # Filtres
-├── LogSearch.vue             # Recherche
-└── LogExport.vue             # Export
-```
+**Livrables** :
+- Service d'exécution avec événements
+- Gestion de la file d'attente
 
-#### 11.2 Visualiseur de données JSON
-- [ ] Créer viewer JSON avec arborescence
-- [ ] Permettre expansion/collapse
-- [ ] Copier des valeurs
+---
+
+### 4.3 Vue d'exécution en temps réel
+**Durée** : 4 jours
+
+**Tâches** :
+- [ ] Créer le composant `TaskRunView.vue`
+- [ ] Afficher le workflow avec l'étape en cours mise en évidence
+- [ ] Créer le panneau de logs en temps réel :
+  - Filtrage par niveau (info, warn, error, debug)
+  - Recherche dans les logs
+  - Scroll automatique
+  - Export des logs
+- [ ] Afficher la progression globale (barre de progression)
+- [ ] Boutons de contrôle : Pause (si possible), Arrêter
+- [ ] Afficher l'aperçu des données extraites en temps réel
+
+**Livrables** :
+- Vue d'exécution en temps réel
+- Logs en streaming
+- Visualisation de la progression
+
+---
+
+### 4.4 Historique des exécutions
+**Durée** : 2 jours
+
+**Tâches** :
+- [ ] Créer l'API pour l'historique des exécutions
+- [ ] Stocker les résultats des exécutions (fichier JSON ou DB légère)
+- [ ] Créer le composant `ExecutionHistory.vue`
+- [ ] Permettre de consulter les détails d'une exécution passée
+- [ ] Afficher les statistiques : durée, éléments extraits, erreurs
+
+**Livrables** :
+- Historique des exécutions consultable
+- Statistiques d'exécution
+
+---
+
+# 📦 Phase 5 : Visualisation des données
+
+> **Objectif** : Permettre la consultation et l'export des données extraites
+
+## Sprint 8 (2 semaines)
+
+### 5.1 Vue des outputs
+**Durée** : 3 jours
+
+**Tâches** :
+- [ ] Créer l'API pour lister les fichiers de sortie
+- [ ] Créer le composant `OutputsListView.vue`
+- [ ] Afficher la liste des fichiers avec :
+  - Nom du fichier
+  - Taille
+  - Date de création
+  - Format (JSON/CSV)
+  - Tâche associée
+- [ ] Actions : Voir, Télécharger, Supprimer
+
+**Livrables** :
+- Liste des fichiers de sortie
+- Actions de base sur les fichiers
+
+---
+
+### 5.2 Visualisation JSON
+**Durée** : 3 jours
+
+**Tâches** :
+- [ ] Créer le composant `JsonViewer.vue`
+- [ ] Implémenter l'arborescence pliable/dépliable
+- [ ] Coloration syntaxique des types (string, number, boolean, null)
 - [ ] Recherche dans les données
+- [ ] Copier une valeur ou un chemin
+- [ ] Pagination pour les grands tableaux
 
-**Fichiers à créer** :
-```
-frontend/src/components/data/
-├── JsonViewer.vue            # Viewer JSON
-├── JsonNode.vue              # Nœud JSON
-├── JsonSearch.vue            # Recherche
-└── JsonToolbar.vue           # Actions
-```
-
-#### 11.3 Visualiseur de données CSV/Table
-- [ ] Créer composant table de données
-- [ ] Pagination des données
-- [ ] Tri par colonne
-- [ ] Filtrage par colonne
-- [ ] Export CSV
-
-**Fichiers à créer** :
-```
-frontend/src/components/data/
-├── DataTable.vue             # Table principale
-├── TableHeader.vue           # En-têtes triables
-├── TableRow.vue              # Ligne de données
-├── TablePagination.vue       # Pagination
-├── TableFilter.vue           # Filtres
-└── TableExport.vue           # Export
-```
-
-#### 11.4 Page de visualisation des outputs
-- [ ] Lister les fichiers output/
-- [ ] Ouvrir et visualiser JSON
-- [ ] Ouvrir et visualiser CSV
-- [ ] Télécharger les fichiers
-
-**Fichiers à créer** :
-```
-frontend/src/views/
-└── OutputsView.vue
-
-frontend/src/components/outputs/
-├── OutputsList.vue           # Liste des fichiers
-├── OutputCard.vue            # Carte d'un output
-└── OutputViewer.vue          # Viewer intégré
-```
-
-**Routes API à ajouter** :
-- GET `/api/outputs` - Liste des fichiers output
-- GET `/api/outputs/:name` - Contenu d'un fichier
-- GET `/api/outputs/:name/download` - Téléchargement
-
-**Livrables Sprint 11** :
-- ✅ Logs temps réel
-- ✅ Viewer JSON/CSV
-- ✅ Page outputs
+**Livrables** :
+- Visualiseur JSON interactif
 
 ---
 
-## Sprint 12 : Finitions & Polish
+### 5.3 Visualisation tableau (CSV/Data)
+**Durée** : 3 jours
 
-**Durée** : 1 semaine
+**Tâches** :
+- [ ] Créer le composant `DataTable.vue`
+- [ ] Implémenter les fonctionnalités :
+  - Colonnes triables
+  - Filtrage par colonne
+  - Recherche globale
+  - Pagination
+  - Redimensionnement des colonnes
+  - Masquer/afficher des colonnes
+- [ ] Exporter les données filtrées (JSON, CSV)
 
-### Tâches
-
-#### 12.1 Améliorations UX
-- [ ] Notifications toast (succès, erreur)
-- [ ] Confirmations avant actions destructives
-- [ ] Messages d'erreur explicites
-- [ ] États de chargement (skeleton)
-- [ ] Raccourcis clavier
-
-**Fichiers à créer** :
-```
-frontend/src/components/ui/
-├── Toast.vue                 # Notification toast
-├── ConfirmDialog.vue         # Dialog de confirmation
-├── LoadingSkeleton.vue       # Skeleton loader
-├── EmptyState.vue            # État vide
-└── ErrorState.vue            # État erreur
-```
-
-#### 12.2 Responsive design
-- [ ] Adapter le layout pour tablettes
-- [ ] Adapter le layout pour mobile
-- [ ] Menu hamburger sur mobile
-- [ ] Optimisation workflow editor mobile
-
-#### 12.3 Documentation utilisateur
-- [ ] Créer page d'aide intégrée
-- [ ] Tooltips sur les blocs
-- [ ] Tutoriel premier lancement
-- [ ] Exemples intégrés
-
-**Fichiers à créer** :
-```
-frontend/src/views/
-└── HelpView.vue
-
-frontend/src/components/help/
-├── GettingStarted.vue        # Guide démarrage
-├── BlockReference.vue        # Référence des blocs
-├── Examples.vue              # Exemples
-└── Shortcuts.vue             # Raccourcis
-```
-
-#### 12.4 Tests et optimisation
-- [ ] Tests unitaires composants critiques
-- [ ] Tests e2e parcours principaux
-- [ ] Optimisation bundle (lazy loading)
-- [ ] Optimisation performances canvas
-
-**Fichiers à créer** :
-```
-frontend/tests/
-├── unit/
-│   ├── components/
-│   └── utils/
-└── e2e/
-    ├── workflow.spec.ts
-    └── configs.spec.ts
-```
-
-#### 12.5 Documentation technique
-- [ ] README pour backend
-- [ ] README pour frontend
-- [ ] Documentation API (OpenAPI/Swagger)
-- [ ] Guide de déploiement
-
-**Livrables Sprint 12** :
-- ✅ UX finalisée
-- ✅ Responsive design
-- ✅ Documentation complète
-- ✅ Application production-ready
+**Livrables** :
+- Table de données interactive
+- Export avec filtres
 
 ---
 
-# 📊 Récapitulatif
+### 5.4 Consultation des logs
+**Durée** : 2 jours
 
-## Phases et Sprints
+**Tâches** :
+- [ ] Créer l'API pour lire les fichiers de logs
+- [ ] Créer le composant `LogsView.vue`
+- [ ] Afficher les logs avec :
+  - Filtrage par niveau
+  - Filtrage par date
+  - Recherche textuelle
+  - Pagination
+- [ ] Coloration par niveau de log
 
-| Phase | Sprint | Durée | Focus |
-|-------|--------|-------|-------|
-| **Phase 1** | Sprint 1 | 1 sem | Docker + Structure Backend |
-| | Sprint 2 | 1 sem | API Configurations |
-| | Sprint 3 | 1 sem | API Exécution Scrapers |
-| **Phase 2** | Sprint 4 | 1 sem | WebSocket Temps Réel |
-| | Sprint 5 | 1 sem | Structure Frontend Vue.js |
-| | Sprint 6 | 1 sem | Pages de Base |
-| **Phase 3** | Sprint 7 | 1 sem | Canvas Workflow Base |
-| | Sprint 8 | 1 sem | Palette de Blocs |
-| | Sprint 9 | 1 sem | Configuration Blocs |
-| | Sprint 10 | 1 sem | Conversion Workflow ↔ JSON |
-| **Phase 4** | Sprint 11 | 1 sem | Visualisation Données/Logs |
-| | Sprint 12 | 1 sem | Finitions |
-
-## Dépendances Principales
-
-```
-npm packages backend:
-- express
-- ws / socket.io
-- typescript
-- cors
-- ajv (validation)
-
-npm packages frontend:
-- vue@3
-- vite
-- typescript
-- tailwindcss
-- @vue-flow/core
-- pinia
-- vue-router@4
-- @vueuse/core
-```
-
-## Livrables Finaux
-
-1. **Backend API**
-   - API REST complète pour configs, tasks, logs, outputs
-   - WebSocket pour temps réel
-   - Intégration scraper existant
-   - Docker ready
-
-2. **Frontend Vue.js**
-   - Dashboard
-   - Éditeur de workflow drag & drop
-   - Gestion des configurations
-   - Visualisation logs temps réel
-   - Visualisation données JSON/CSV
-   - Responsive
-
-3. **Infrastructure**
-   - Docker Compose complet
-   - Documentation déploiement
-   - Scripts de démarrage
+**Livrables** :
+- Interface de consultation des logs
 
 ---
 
-*Dernière mise à jour : 2026-01-20*
-*Version : 2.0.0 (Plan)*
+# 📦 Phase 6 : Polish & Déploiement
+
+> **Objectif** : Finaliser l'application et préparer le déploiement
+
+## Sprint 9 (1 semaine)
+
+### 6.1 Tests et corrections
+**Durée** : 2 jours
+
+**Tâches** :
+- [ ] Tester tous les flux utilisateur
+- [ ] Corriger les bugs identifiés
+- [ ] Vérifier la responsivité
+- [ ] Tester les thèmes dark/light
+- [ ] Vérifier les performances
+
+**Livrables** :
+- Application sans bugs critiques
+
+---
+
+### 6.2 Documentation utilisateur
+**Durée** : 1 jour
+
+**Tâches** :
+- [ ] Créer le guide utilisateur (`documentation/user-guide-v2.md`)
+- [ ] Documenter l'API backend (`documentation/api-v2.md`)
+- [ ] Ajouter des info-bulles d'aide dans l'interface
+- [ ] Créer une page "À propos" avec version et changelog
+
+**Livrables** :
+- Documentation utilisateur complète
+
+---
+
+### 6.3 Optimisation et finalisation
+**Durée** : 2 jours
+
+**Tâches** :
+- [ ] Optimiser les bundles frontend (tree-shaking, lazy loading)
+- [ ] Configurer les builds de production
+- [ ] Finaliser les Dockerfiles pour la production
+- [ ] Mettre à jour le README.md principal
+- [ ] Créer les scripts de démarrage simples
+- [ ] Tester le déploiement Docker complet
+
+**Livrables** :
+- Application prête pour la production
+- Documentation de déploiement
+
+---
+
+# 📝 Récapitulatif des livrables
+
+## Frontend
+| Composant | Fichier | Description |
+|-----------|---------|-------------|
+| Layout | `MainLayout.vue` | Structure principale |
+| Header | `Header.vue` | En-tête avec navigation |
+| Liste tâches | `TasksListView.vue` | Page d'accueil |
+| Carte tâche | `TaskCard.vue` | Aperçu d'une tâche |
+| Éditeur | `TaskEditorView.vue` | Page d'édition |
+| Canvas | `WorkflowCanvas.vue` | Zone de travail |
+| Bloc | `Block.vue` | Composant bloc |
+| Bibliothèque | `BlockLibrary.vue` | Liste des blocs |
+| Config bloc | `BlockConfigPanel.vue` | Configuration |
+| Exécution | `TaskRunView.vue` | Suivi en temps réel |
+| Outputs | `OutputsListView.vue` | Liste des sorties |
+| JSON Viewer | `JsonViewer.vue` | Visualisation JSON |
+| Data Table | `DataTable.vue` | Tableau de données |
+| Logs | `LogsView.vue` | Consultation logs |
+
+## Backend
+| Service | Fichier | Description |
+|---------|---------|-------------|
+| Tasks | `routes/tasks.js` | CRUD tâches |
+| Execution | `services/ExecutionService.js` | Exécution scraper |
+| WebSocket | `websocket/handler.js` | Communication temps réel |
+| Outputs | `routes/outputs.js` | Gestion des sorties |
+| Logs | `routes/logs.js` | Consultation logs |
+
+## Docker
+| Fichier | Description |
+|---------|-------------|
+| `frontend/Dockerfile` | Build frontend |
+| `backend/Dockerfile` | Build backend |
+| `docker-compose.yml` | Orchestration |
+| `docker-compose.prod.yml` | Production |
+
+---
+
+# 🎨 Maquettes UI (Description)
+
+## Page d'accueil (Liste des tâches)
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  🕷️ Generic Scraper                                    [🌙] [v2.0] │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  Mes tâches de scraping                            [+ Nouvelle]     │
+│                                                                     │
+│  🔍 Rechercher...                    Filtre: [Tous ▼]              │
+│                                                                     │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │ 📋 Scraping Products          ✅ Succès     Il y a 2h       │   │
+│  │    Extraction des produits                                   │   │
+│  │                               [▶️ Lancer] [✏️] [📋] [🗑️]     │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+│                                                                     │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │ 📋 Daily News Scraper         ⏰ Planifié   Prochain: 9h    │   │
+│  │    Actualités quotidiennes                                   │   │
+│  │                               [▶️ Lancer] [✏️] [📋] [🗑️]     │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+## Éditeur de workflow
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  🕷️ Generic Scraper > Édition: Scraping Products     [💾] [▶️]     │
+├───────────┬─────────────────────────────────────┬───────────────────┤
+│ BLOCS     │          CANVAS                     │ CONFIGURATION     │
+├───────────┤                                     ├───────────────────┤
+│ 🔍 Search │   ┌─────────┐   ┌─────────┐        │ Navigate          │
+│           │   │Navigate │──▶│  Click  │        │ ─────────────     │
+│ Navigation│   └─────────┘   └────┬────┘        │                   │
+│  ├ Navigate                      │             │ URL:              │
+│  └ Wait   │                 ┌────▼────┐        │ [https://...]     │
+│           │                 │ Extract │        │                   │
+│ Interaction                 └─────────┘        │ Attendre:         │
+│  ├ Click  │                                    │ [networkidle ▼]   │
+│  ├ Input  │      [🔍 Zoom: 100%]              │                   │
+│  └ Scroll │                                    │ Timeout:          │
+│           │                                    │ [30000] ms        │
+│ Extraction│                                    │                   │
+│  └ Extract│                                    │                   │
+│           │                                    │                   │
+│ Contrôle  │                                    │                   │
+│  ├ Loop   │                                    │                   │
+│  └ Condition                                   │                   │
+└───────────┴─────────────────────────────────────┴───────────────────┘
+```
+
+---
+
+# 📌 Notes importantes
+
+## Dépendances recommandées
+
+### Frontend
+```json
+{
+  "dependencies": {
+    "vue": "^3.4.0",
+    "vue-router": "^4.2.0",
+    "pinia": "^2.1.0",
+    "@vueuse/core": "^10.7.0",
+    "@vue-flow/core": "^1.28.0",
+    "socket.io-client": "^4.7.0",
+    "axios": "^1.6.0",
+    "lucide-vue-next": "^0.300.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "tailwindcss": "^3.4.0",
+    "vite": "^5.0.0"
+  }
+}
+```
+
+### Backend
+```json
+{
+  "dependencies": {
+    "express": "^4.18.0",
+    "cors": "^2.8.0",
+    "socket.io": "^4.7.0",
+    "uuid": "^9.0.0",
+    "chokidar": "^3.5.0"
+  }
+}
+```
+
+## Bonnes pratiques
+- Utiliser les conventions de nommage Vue.js (PascalCase pour composants)
+- Typer toutes les interfaces et props
+- Utiliser les composables Vue pour la logique réutilisable
+- Implémenter la gestion d'erreurs à tous les niveaux
+- Logger toutes les actions importantes
+- Tester régulièrement avec Docker
+
+## Points d'attention
+- Performance du canvas avec de nombreux blocs
+- Gestion de la mémoire pour les gros fichiers JSON
+- Timeout des WebSocket lors d'exécutions longues
+- Compatibilité des navigateurs (cibler les versions récentes)
+
+---
+
+*Document créé le : 2026-01-21*  
+*Dernière mise à jour : 2026-01-21*  
+*Version : 1.0.0*
