@@ -7,6 +7,12 @@ import sqlite3 from 'sqlite3';
 import * as path from 'path';
 import * as fs from 'fs';
 import { promisify } from 'util';
+import { fileURLToPath } from 'url';
+
+// Define __dirname for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 import type {
   Execution,
   ExecutionLog,

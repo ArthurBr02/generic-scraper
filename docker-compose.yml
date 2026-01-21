@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # Frontend - Vue.js application
+  # Frontend - Mode développement avec hot-reload
   frontend:
     build:
       context: ./frontend
@@ -11,6 +11,16 @@ services:
       - "3000:3000"
     depends_on:
       - backend
+    volumes:
+      # Mount source code for hot-reload
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/index.html:/app/index.html
+      - ./frontend/vite.config.ts:/app/vite.config.ts
+      - ./frontend/tailwind.config.js:/app/tailwind.config.js
+      - ./frontend/postcss.config.js:/app/postcss.config.js
+      # Exclude node_modules
+      - /app/node_modules
     environment:
       - VITE_API_URL=http://localhost:4000
       - VITE_WS_URL=ws://localhost:4000
@@ -18,7 +28,7 @@ services:
       - scraper-network
     restart: unless-stopped
 
-  # Backend - Node.js/Express API
+  # Backend - Mode développement avec hot-reload
   backend:
     build:
       context: ./backend
@@ -27,38 +37,33 @@ services:
     ports:
       - "4000:4000"
     volumes:
-      # Volumes persistants pour les données
+      # Mount source code for hot-reload
+      - ./backend/src:/app/src
+      - ./backend/tsconfig.json:/app/tsconfig.json
+      # Exclude node_modules
+      - /app/node_modules
+      # Volumes persistants
       - ./configs:/app/configs
       - ./logs:/app/logs
       - ./output:/app/output
       - ./data:/app/data
-      # Volume pour le moteur de scraping existant (monté dans un dossier différent)
+      # Moteur de scraping existant (monté dans un dossier différent)
       - ./src:/app/scraper-engine
+      # Node modules du projet racine pour que le scraper engine trouve playwright
+      - ./node_modules:/app/scraper-engine/node_modules
     environment:
       - NODE_ENV=development
       - PORT=4000
       - HOST=0.0.0.0
       - DATABASE_PATH=/app/data/scraper.db
       - CORS_ORIGIN=http://localhost:3000
-      - LOG_LEVEL=info
+      - LOG_LEVEL=debug
       - SCRAPER_ENGINE_PATH=/app/scraper-engine
+      - NODE_PATH=/app/node_modules
     networks:
       - scraper-network
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:4000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 10s
 
 networks:
   scraper-network:
     driver: bridge
-
-volumes:
-  # Volumes nommés pour une meilleure gestion
-  configs:
-  logs:
-  output:
-  data:

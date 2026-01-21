@@ -1,0 +1,10 @@
+{
+  "europass": {
+    "id": "europass",
+    "name": "mon-scraper",
+    "configFile": "europass.json",
+    "createdAt": "2026-01-21T20:56:35.377Z",
+    "updatedAt": "2026-01-21T20:56:35.377Z",
+    "runCount": 0
+  }
+}

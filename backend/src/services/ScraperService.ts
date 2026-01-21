@@ -7,6 +7,8 @@
 
 import * as path from 'path';
 import { EventEmitter } from 'events';
+import { createRequire } from 'module';
+import { fileURLToPath } from 'url';
 import type {
   ScraperConfig,
   ScraperResult,
@@ -15,8 +17,9 @@ import type {
   ValidationResult
 } from '../types/scraper.types';
 
-// Import the scraper library (CommonJS module)
-const scraperLib = require('../../../src/lib');
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * Service for managing and executing scraping tasks
@@ -24,11 +27,27 @@ const scraperLib = require('../../../src/lib');
 export class ScraperService extends EventEmitter {
   private configsPath: string;
   private outputPath: string;
+  private scraperLib: any = null;
 
   constructor() {
     super();
     this.configsPath = path.resolve(__dirname, '../../../configs');
     this.outputPath = path.resolve(__dirname, '../../../output');
+  }
+
+  /**
+   * Lazy-load the scraper library to avoid circular dependencies
+   */
+  private getScraperLib(): any {
+    if (!this.scraperLib) {
+      // In Docker, the scraper engine is mounted at /app/scraper-engine (or SCRAPER_ENGINE_PATH env var)
+      // In local dev, it's at ../../../src
+      const require = createRequire(import.meta.url);
+      const scraperEnginePath = process.env.SCRAPER_ENGINE_PATH || path.resolve(__dirname, '../../../src');
+      const scraperLibPath = path.join(scraperEnginePath, 'lib.js');
+      this.scraperLib = require(scraperLibPath);
+    }
+    return this.scraperLib;
   }
 
   /**
@@ -53,7 +72,7 @@ export class ScraperService extends EventEmitter {
       this.emit('execution:start', { config: configToExecute });
 
       // Execute the scraper
-      const result = await scraperLib.execute(configToExecute, {
+      const result = await this.getScraperLib().execute(configToExecute, {
         headless: options.headless ?? true,
         logLevel: options.logLevel ?? 'info',
         onProgress: (event: any) => {
@@ -101,7 +120,7 @@ export class ScraperService extends EventEmitter {
    */
   validateConfig(config: ScraperConfig): ValidationResult {
     try {
-      return scraperLib.validateConfiguration(config);
+      return this.getScraperLib().validateConfiguration(config);
     } catch (error: any) {
       return {
         valid: false,
@@ -119,7 +138,7 @@ export class ScraperService extends EventEmitter {
    * @returns Array of action type names
    */
   getAvailableActions(): string[] {
-    return scraperLib.getAvailableActions();
+    return this.getScraperLib().getAvailableActions();
   }
 
   /**
@@ -129,7 +148,7 @@ export class ScraperService extends EventEmitter {
    * @returns Action schema or null if not found
    */
   getActionSchema(actionType: string): ActionSchema | null {
-    return scraperLib.getActionSchema(actionType);
+    return this.getScraperLib().getActionSchema(actionType);
   }
 
   /**
@@ -152,7 +171,7 @@ export class ScraperService extends EventEmitter {
    */
   loadConfig(configName: string): ScraperConfig {
     const configPath = this.resolveConfigPath(configName);
-    return scraperLib.loadConfig({ configPath });
+    return this.getScraperLib().loadConfig({ configPath });
   }
 
   /**

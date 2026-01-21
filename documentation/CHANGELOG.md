@@ -5,6 +5,59 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.0.0-sprint2] - 2026-01-21
+
+### 🎨 Phase 2 - Sprint 2 : Interface de base & Gestion des tâches
+
+#### Ajouté
+
+**Frontend - Composants UI**
+- `Select.vue` - Composant de liste déroulante avec support dark mode
+- `Badge.vue` - Badge de statut avec variantes (success, danger, warning, info)
+- `Spinner.vue` - Indicateur de chargement avec plusieurs tailles
+- `IconButton.vue` - Bouton avec icône pour actions rapides
+- `Tooltip.vue` - Info-bulle avec positionnement configurable
+- `Dropdown.vue` + `DropdownItem.vue` - Menu déroulant interactif
+- `Tabs.vue` + `TabPanel.vue` - Système d'onglets avec variantes
+- `Toast.vue` + `ToastContainer.vue` - Système de notifications toast
+
+**Frontend - Layout**
+- `MainLayout.vue` - Layout principal responsive
+- `Header.vue` - En-tête avec logo, navigation et toggle dark mode
+- Vue Router configuré avec routes de base
+
+**Frontend - Vues**
+- `TasksListView.vue` - Vue liste des tâches avec recherche et filtres
+- `TaskEditorView.vue` - Vue d'édition de tâche (placeholder Phase 3)
+- `TaskRunView.vue` - Vue d'exécution de tâche (placeholder Phase 4)
+
+**Frontend - Stores Pinia**
+- `tasks.ts` - Store pour la gestion des tâches (CRUD, exécution)
+- `notification.ts` - Store pour le système de notifications toast
+
+**Backend - Services**
+- `ConfigService.ts` - Service de gestion des fichiers de configuration
+  - CRUD complet sur les tâches
+  - Métadonnées (créé le, modifié le, dernière exécution)
+  - Validation des configurations
+  - Duplication de tâches
+
+**Backend - Routes API**
+- `GET /api/tasks` - Lister toutes les tâches
+- `GET /api/tasks/:id` - Récupérer une tâche
+- `POST /api/tasks` - Créer une nouvelle tâche
+- `PUT /api/tasks/:id` - Modifier une tâche
+- `DELETE /api/tasks/:id` - Supprimer une tâche
+- `POST /api/tasks/:id/run` - Lancer une tâche
+- `POST /api/tasks/:id/duplicate` - Dupliquer une tâche
+
+#### Modifié
+- `App.vue` - Simplifié pour utiliser `<router-view />`
+- `main.ts` - Ajout de Vue Router
+- Version du projet passée à 2.0.0-sprint2
+
+---
+
 ## [1.4.0] - 2026-01-21
 
 ### ✨ Intégration du moteur de scraping comme bibliothèque

@@ -1,33 +1,31 @@
-# Build stage
-FROM node:20-alpine AS builder
-
-WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
-RUN npm ci
-
-# Copy source code
-COPY . .
-
-# Build TypeScript
-RUN npm run build
-
-# Production stage
 FROM node:20-alpine
 
 WORKDIR /app
 
+# Install build tools for native dependencies (sqlite3) and Playwright dependencies
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont
+
+# Set Playwright to use system chromium
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
 # Copy package files
 COPY package*.json ./
 
-# Install production dependencies only
-RUN npm ci --only=production
+# Install dependencies (use npm install to update lockfile with new deps)
+RUN npm install
 
-# Copy built files from builder
-COPY --from=builder /app/dist ./dist
+# Copy source code
+COPY . .
 
 # Create necessary directories
 RUN mkdir -p /app/configs /app/logs /app/output /app/data
@@ -35,9 +33,5 @@ RUN mkdir -p /app/configs /app/logs /app/output /app/data
 # Expose port
 EXPOSE 4000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:4000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
-
-# Start server
-CMD ["node", "dist/index.js"]
+# Start development server with tsx watch
+CMD ["npm", "run", "dev"]
