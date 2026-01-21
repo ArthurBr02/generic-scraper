@@ -5,6 +5,56 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.0.0-sprint3] - 2026-01-21
+
+### 🎨 Phase 2 - Sprint 3 : Vue liste des tâches et confirmations
+
+#### Ajouté
+
+**Frontend - Composants de confirmation**
+- `ConfirmModal.vue` - Modal de confirmation réutilisable avec variantes (danger, warning, info)
+  - Support de l'état de chargement
+  - Personnalisation des textes de boutons
+  - Icônes contextuelles selon la variante
+
+**Frontend - Fonctionnalités TasksListView**
+- ✅ Pagination côté client (9 tâches par page)
+  - Contrôles de navigation (page précédente/suivante)
+  - Affichage du numéro de page actuel
+  - Réinitialisation automatique lors du changement de filtre
+- ✅ Recherche en temps réel dans le nom et la description
+- ✅ Filtrage par statut d'exécution (succès, erreur, en cours)
+- ✅ Affichage des cartes de tâches avec :
+  - Badge de statut coloré
+  - Date de dernière exécution formatée
+  - Boutons d'actions (Lancer, Dupliquer, Supprimer)
+
+**Frontend - Système de confirmations**
+- Confirmation de suppression de tâche (variante danger)
+- Confirmation de lancement de tâche (variante info)
+- Remplacement des `confirm()` natifs par des modales personnalisées
+
+**Frontend - Intégration ToastContainer**
+- Ajout du ToastContainer dans App.vue pour affichage global des notifications
+- Notifications automatiques pour les actions CRUD
+
+#### Modifié
+- `TasksListView.vue` :
+  - Ajout de la pagination avec état `currentPage` et `itemsPerPage`
+  - Nouveau computed `paginatedTasks` pour gérer l'affichage paginé
+  - Nouveau computed `totalPages` pour le calcul du nombre de pages
+  - Watchers sur `searchQuery` et `filterStatus` pour réinitialiser la page
+  - Remplacement des confirmations natives par le composant `ConfirmModal`
+  - Gestion de l'état de chargement pour les confirmations
+
+- `App.vue` :
+  - Intégration du composant `ToastContainer` pour l'affichage des notifications
+
+#### Technique
+- Pattern de confirmation avec callback asynchrone stocké dans l'état
+- Gestion de l'état de chargement pendant l'exécution des actions confirmées
+- Réinitialisation automatique de la modale après confirmation
+
 ## [2.0.0-sprint2] - 2026-01-21
 
 ### 🎨 Phase 2 - Sprint 2 : Interface de base & Gestion des tâches

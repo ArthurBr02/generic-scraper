@@ -72,7 +72,7 @@
 
       <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card
-          v-for="task in filteredTasks"
+          v-for="task in paginatedTasks"
           :key="task.id"
           class="hover:shadow-lg transition-shadow duration-200 cursor-pointer"
           @click="editTask(task.id)"
@@ -135,7 +135,48 @@
           </div>
         </Card>
       </div>
+
+      <!-- Pagination -->
+      <div v-if="totalPages > 1" class="flex items-center justify-center gap-2 mt-6">
+        <Button
+          variant="ghost"
+          size="sm"
+          :disabled="currentPage === 1"
+          @click="currentPage--"
+        >
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+        </Button>
+        
+        <span class="text-sm text-gray-600 dark:text-gray-400">
+          Page {{ currentPage }} sur {{ totalPages }}
+        </span>
+        
+        <Button
+          variant="ghost"
+          size="sm"
+          :disabled="currentPage === totalPages"
+          @click="currentPage++"
+        >
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </Button>
+      </div>
     </div>
+
+    <!-- Modales de confirmation -->
+    <ConfirmModal
+      :open="confirmModal.open"
+      :title="confirmModal.title"
+      :message="confirmModal.message"
+      :variant="confirmModal.variant"
+      :confirm-text="confirmModal.confirmText"
+      :loading="confirmModal.loading"
+      @confirm="handleConfirmAction"
+      @cancel="closeConfirmModal"
+    />
   </MainLayout>
 </template>
 
@@ -152,6 +193,7 @@ import Card from '@/components/common/Card.vue';
 import Badge from '@/components/common/Badge.vue';
 import Spinner from '@/components/common/Spinner.vue';
 import IconButton from '@/components/common/IconButton.vue';
+import ConfirmModal from '@/components/common/ConfirmModal.vue';
 
 export default defineComponent({
   name: 'TasksListView',
@@ -164,7 +206,8 @@ export default defineComponent({
     Card,
     Badge,
     Spinner,
-    IconButton
+    IconButton,
+    ConfirmModal
   },
 
   data() {
@@ -172,6 +215,17 @@ export default defineComponent({
       searchQuery: '',
       filterStatus: '',
       runningTasks: [] as string[],
+      currentPage: 1,
+      itemsPerPage: 9,
+      confirmModal: {
+        open: false,
+        title: '',
+        message: '',
+        variant: null as 'danger' | 'warning' | 'info' | null,
+        confirmText: 'Confirmer',
+        loading: false,
+        action: null as (() => Promise<void>) | null
+      },
       statusOptions: [
         { value: '', label: 'Tous les statuts' },
         { value: 'success', label: 'Succès' },
@@ -202,6 +256,25 @@ export default defineComponent({
       }
 
       return filtered;
+    },
+
+    paginatedTasks(): any[] {
+      const start = (this.currentPage - 1) * this.itemsPerPage;
+      const end = start + this.itemsPerPage;
+      return this.filteredTasks.slice(start, end);
+    },
+
+    totalPages(): number {
+      return Math.ceil(this.filteredTasks.length / this.itemsPerPage);
+    }
+  },
+
+  watch: {
+    searchQuery(): void {
+      this.currentPage = 1;
+    },
+    filterStatus(): void {
+      this.currentPage = 1;
     }
   },
 
@@ -222,15 +295,25 @@ export default defineComponent({
     },
 
     async runTask(id: string): Promise<void> {
-      this.runningTasks.push(id);
-      try {
-        // TODO: Implémenter l'exécution de la tâche
-        this.success('Tâche lancée avec succès');
-      } catch (err: any) {
-        this.error(err.message || 'Erreur lors du lancement de la tâche');
-      } finally {
-        this.runningTasks = this.runningTasks.filter(tid => tid !== id);
-      }
+      this.confirmModal = {
+        open: true,
+        title: 'Lancer la tâche',
+        message: 'Voulez-vous lancer cette tâche de scraping ?',
+        variant: 'info',
+        confirmText: 'Lancer',
+        loading: false,
+        action: async () => {
+          this.runningTasks.push(id);
+          try {
+            // TODO: Implémenter l'exécution de la tâche
+            this.success('Tâche lancée avec succès');
+          } catch (err: any) {
+            this.error(err.message || 'Erreur lors du lancement de la tâche');
+          } finally {
+            this.runningTasks = this.runningTasks.filter(tid => tid !== id);
+          }
+        }
+      };
     },
 
     async duplicateTask(id: string): Promise<void> {
@@ -244,14 +327,45 @@ export default defineComponent({
     },
 
     async deleteTask(id: string): Promise<void> {
-      if (confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?')) {
-        try {
-          await this.deleteTaskAction(id);
-          this.success('Tâche supprimée avec succès');
-        } catch (err: any) {
-          this.error(err.message || 'Erreur lors de la suppression');
+      this.confirmModal = {
+        open: true,
+        title: 'Supprimer la tâche',
+        message: 'Êtes-vous sûr de vouloir supprimer cette tâche ? Cette action est irréversible.',
+        variant: 'danger',
+        confirmText: 'Supprimer',
+        loading: false,
+        action: async () => {
+          try {
+            await this.deleteTaskAction(id);
+            this.success('Tâche supprimée avec succès');
+          } catch (err: any) {
+            this.error(err.message || 'Erreur lors de la suppression');
+          }
         }
+      };
+    },
+
+    async handleConfirmAction(): Promise<void> {
+      if (!this.confirmModal.action) return;
+      
+      this.confirmModal.loading = true;
+      try {
+        await this.confirmModal.action();
+      } finally {
+        this.closeConfirmModal();
       }
+    },
+
+    closeConfirmModal(): void {
+      this.confirmModal = {
+        open: false,
+        title: '',
+        message: '',
+        variant: null,
+        confirmText: 'Confirmer',
+        loading: false,
+        action: null
+      };
     },
 
     getStatusVariant(status: string): 'success' | 'danger' | 'warning' | 'default' {
