@@ -5,6 +5,89 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.0.0-sprint5] - 2026-01-21
+
+### 🎨 Phase 3 - Sprint 5 : Canvas de workflow et connexions
+
+#### Ajouté
+
+**Frontend - Bibliothèque Vue Flow**
+- Intégration de Vue Flow (@vue-flow/core, @vue-flow/background, @vue-flow/controls, @vue-flow/minimap)
+- Bibliothèque de graphe moderne pour créer des workflows visuels interactifs
+
+**Frontend - Store Workflow**
+- `stores/workflow.ts` - Store Pinia pour la gestion du workflow :
+  - État : `nodes`, `edges`, `selectedNodes`, `viewport`, `isDirty`
+  - Actions pour manipuler les nœuds et connexions
+  - Getters pour accéder aux données du workflow
+  - Validation des connexions entre blocs
+  - Support des types de ports (flow, data)
+
+**Frontend - Store Blocs**
+- `stores/blocks.ts` - Store Pinia pour la bibliothèque de blocs :
+  - Catalogue complet des blocs disponibles
+  - Catégories : navigation, action, extraction, control, output
+  - Blocs prédéfinis : navigate, wait, screenshot, click, type, scroll, select, extract, extractList, condition, loop, output
+  - Méthodes pour récupérer les blocs par type et catégorie
+
+**Frontend - Composant WorkflowCanvas**
+- `components/WorkflowCanvas.vue` - Canvas de workflow interactif :
+  - Drag & drop de blocs depuis la bibliothèque
+  - Déplacement des blocs sur le canvas
+  - Zoom et pan (navigation)
+  - Sélection simple et multiple de nœuds
+  - Grille de positionnement (snap to grid)
+  - Mini-map de navigation
+  - Contrôles de zoom et fit view
+  - Nœuds personnalisés avec icônes et labels
+  - Gestion des handles (ports de connexion)
+  - Menu contextuel sur les nœuds (dupliquer, supprimer, configurer)
+  - Support du thème dark/light
+
+**Frontend - Composant CustomEdge**
+- `components/CustomEdge.vue` - Connexions personnalisées :
+  - Dessin de connexions en smooth step
+  - États visuels : normal, active, error
+  - Support des types de connexions : flow (lignes pleines), data (lignes pointillées)
+  - Animation pour les connexions actives
+  - Bouton de suppression au survol
+  - Labels optionnels sur les connexions
+  - Style adaptatif selon le thème
+
+**Frontend - Intégration TaskEditorView**
+- `views/TaskEditorView.vue` - Éditeur visuel de workflow :
+  - Sidebar gauche avec bibliothèque de blocs drag & drop
+  - Canvas central avec WorkflowCanvas
+  - Sidebar droite pour configuration (placeholder pour Sprint 6)
+  - Header avec boutons sauvegarder/exécuter
+  - Indicateur de modifications non sauvegardées
+  - Organisation par catégories de blocs
+  - Interface complète pour créer/éditer des workflows
+
+#### Fonctionnalités
+
+- ✅ Canvas de workflow avec Vue Flow
+- ✅ Placement et déplacement des blocs par drag & drop
+- ✅ Connexions visuelles entre blocs
+- ✅ Validation des connexions
+- ✅ Zoom, pan et navigation (minimap)
+- ✅ Grille de positionnement
+- ✅ Sélection de nœuds
+- ✅ Suppression de nœuds et connexions
+- ✅ Duplication de nœuds
+- ✅ Menu contextuel
+- ✅ Support dark/light mode
+
+#### Technique
+
+- Utilisation de Vue Options API (conformément aux conventions du projet)
+- Intégration Pinia pour la gestion d'état
+- TypeScript pour la type-safety
+- Styles Tailwind CSS et scoped CSS
+- Composants réutilisables et modulaires
+
+---
+
 ## [2.0.0-sprint4] - 2026-01-21
 
 ### 🎨 Phase 3 - Sprint 4 : Bibliothèque de blocs et composants de base
