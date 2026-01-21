@@ -185,7 +185,7 @@ export default defineComponent({
       };
 
       if (this.state === 'active') {
-        baseStyle.stroke = '#8b5cf6';
+        baseStyle.stroke = '#3b82f6';
         baseStyle.strokeWidth = 3;
       } else if (this.state === 'error') {
         baseStyle.stroke = '#ef4444';
@@ -195,12 +195,12 @@ export default defineComponent({
         baseStyle.stroke = '#ec4899';
         baseStyle.strokeDasharray = '3,3';
       } else {
-        baseStyle.stroke = this.isDarkMode ? '#374151' : '#d1d5db';
+        baseStyle.stroke = this.isDarkMode ? '#4b5563' : '#cbd5e1';
       }
 
       if (this.selected) {
         baseStyle.strokeWidth = 3;
-        baseStyle.stroke = '#8b5cf6';
+        baseStyle.stroke = '#3b82f6';
       }
 
       return baseStyle;
@@ -250,11 +250,11 @@ export default defineComponent({
 
 .edge-click-area:hover + .custom-edge-path {
   stroke-width: 3 !important;
-  stroke: #8b5cf6 !important;
+  stroke: #3b82f6 !important;
 }
 
 .custom-edge-path.selected {
-  filter: drop-shadow(0 0 4px rgba(139, 92, 246, 0.5));
+  filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.5));
 }
 
 .custom-edge-path.edge-state-active {

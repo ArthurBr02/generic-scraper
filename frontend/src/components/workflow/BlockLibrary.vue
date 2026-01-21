@@ -164,7 +164,8 @@ export default defineComponent({
     handleDragStart(event: DragEvent, block: BlockDefinition): void {
       if (!event.dataTransfer) return;
 
-      event.dataTransfer.effectAllowed = 'copy';
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('application/reactflow', block.type);
       event.dataTransfer.setData('application/block-type', block.type);
       event.dataTransfer.setData('application/block-data', JSON.stringify(block));
 

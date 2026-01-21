@@ -24,12 +24,13 @@ Phase 2 - Sprint 2
 Phase 2 - Sprint 3
 Phase 3 - Sprint 4
 Phase 3 - Sprint 5
+Phase 3 - Sprint 6
 
 # Tâche suivante
-Phase 3 - Sprint 6
+Phase 4 - Sprint 7
 
 ---
 
 *Projet mis à jour le 2026-01-21*  
-*Version : 2.0.0-sprint5*  
-*Status : Phase 3 - Sprint 5 Terminé ✅*
+*Version : 2.0.0-sprint6*  
+*Status : Phase 3 - Sprint 6 Terminé ✅*

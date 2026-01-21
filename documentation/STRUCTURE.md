@@ -128,16 +128,51 @@ generic-scraper/
 │           ├── App.vue              # Composant racine
 │           │
 │           ├── components/          # Composants Vue
-│           │   ├── common/          # Composants réutilisables
-│           │   ├── layout/          # Layout
+│           │   ├── common/          # Composants réutilisables (Button, IconButton)
+│           │   ├── layout/          # Layout (MainLayout, MainVueFlowLayout)
 │           │   ├── workflow/        # Éditeur de workflow
-│           │   └── blocks/          # Blocs d'actions
+│           │   │   ├── Block.vue                # Bloc draggable dans la bibliothèque
+│           │   │   ├── BlockLibrary.vue         # Bibliothèque de blocs
+│           │   │   ├── BlockConfigPanel.vue     # Panneau de configuration (Sprint 6) ✨
+│           │   │   ├── WorkflowToolbar.vue      # Barre d'outils (Sprint 6) ✨
+│           │   │   ├── InputPort.vue            # Port d'entrée
+│           │   │   └── OutputPort.vue           # Port de sortie
+│           │   ├── form/            # Composants de formulaire (Sprint 6) ✨
+│           │   │   ├── TextField.vue            # Champ texte
+│           │   │   ├── TextareaField.vue        # Champ texte multiligne
+│           │   │   ├── NumberField.vue          # Champ numérique
+│           │   │   ├── SelectField.vue          # Liste déroulante
+│           │   │   ├── CheckboxField.vue        # Case à cocher
+│           │   │   ├── CodeField.vue            # Éditeur de code
+│           │   │   ├── KeyValueField.vue        # Paires clé-valeur
+│           │   │   └── ArrayField.vue           # Liste d'éléments
+│           │   ├── CustomEdge.vue   # Connexion personnalisée VueFlow
+│           │   └── WorkflowCanvas.vue # Canvas de workflow (VueFlow)
 │           │
 │           ├── views/               # Pages
+│           │   ├── TasksListView.vue    # Liste des tâches
+│           │   ├── TaskEditorView.vue   # Éditeur de workflow
+│           │   └── TaskRunView.vue      # Exécution d'une tâche
+│           │
 │           ├── stores/              # Pinia stores
-│           ├── services/            # Services API
+│           │   ├── workflow.ts          # Store workflow (nodes, edges)
+│           │   ├── blocks.ts            # Store bibliothèque de blocs
+│           │   ├── tasks.ts             # Store gestion des tâches
+│           │   ├── theme.ts             # Store thème (dark/light)
+│           │   └── notification.ts      # Store notifications
+│           │
+│           ├── services/            # Services
+│           │   └── WorkflowConverter.ts # Conversion workflow ↔ JSON (Sprint 6) ✨
+│           │
+│           ├── config/              # Configuration
+│           │   └── blocks.config.ts     # Définitions des blocs
+│           │
 │           ├── types/               # Types TypeScript
-│           └── utils/               # Utilitaires
+│           │   ├── index.ts             # Types généraux
+│           │   └── blocks.ts            # Types pour les blocs
+│           │
+│           └── router/              # Routeur Vue
+│               └── index.ts             # Configuration des routes
 │
 ├── 🐳 Docker
 │   ├── docker-compose.yml           # Composition production

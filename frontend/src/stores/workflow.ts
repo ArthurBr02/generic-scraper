@@ -159,6 +159,27 @@ export const useWorkflowStore = defineStore('workflow', {
     },
 
     /**
+     * Désélectionne tous les nœuds (alias pour clearSelection)
+     */
+    deselectAllNodes(): void {
+      this.clearSelection();
+    },
+
+    /**
+     * Met à jour la configuration d'un nœud
+     */
+    updateNodeConfig(payload: { nodeId: string; config: Record<string, any> }): void {
+      const node = this.nodes.find((n) => n.id === payload.nodeId);
+      if (node) {
+        node.data = {
+          ...node.data,
+          config: payload.config
+        };
+        this.isDirty = true;
+      }
+    },
+
+    /**
      * Met à jour le viewport (position et zoom)
      */
     updateViewport(viewport: Viewport): void {

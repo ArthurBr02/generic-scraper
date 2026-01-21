@@ -46,9 +46,16 @@
           ]"
           @contextmenu.prevent="showNodeContextMenu($event, id)"
         >
-          <div class="node-header">
-            <div class="node-icon">{{ getBlockIcon(data.type) }}</div>
-            <div class="node-label">{{ data.label || data.type }}</div>
+          <div class="node-content">
+            <div class="node-icon" :style="{ backgroundColor: getBlockColor(data.type) }">
+              <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="getBlockIcon(data.type)" />
+              </svg>
+            </div>
+            <div class="node-info">
+              <div class="node-label">{{ data.label || data.type }}</div>
+              <div v-if="data.description" class="node-description">{{ data.description }}</div>
+            </div>
             <button
               class="node-delete"
               @click.stop="deleteNode(id)"
@@ -109,6 +116,7 @@ import { MiniMap } from '@vue-flow/minimap';
 import { mapState, mapActions } from 'pinia';
 import { useWorkflowStore } from '@/stores/workflow';
 import { useBlocksStore } from '@/stores/blocks';
+import { blockDefinitions } from '@/config/blocks.config';
 import CustomEdge from './CustomEdge.vue';
 import type { Node, Edge, Connection, NodeChange, EdgeChange } from '@vue-flow/core';
 
@@ -288,20 +296,32 @@ export default defineComponent({
       event.preventDefault();
 
       const blockType = event.dataTransfer?.getData('application/reactflow');
-      if (!blockType) return;
+      if (!blockType) {
+        console.warn('No block type found in dataTransfer');
+        return;
+      }
 
       // Récupère les informations du bloc
-      const blocksStore = useBlocksStore();
-      const block = blocksStore.getBlockByType(blockType);
-      if (!block) return;
+      const block = blockDefinitions.find(b => b.type === blockType);
+      if (!block) {
+        console.warn('Block not found:', blockType);
+        return;
+      }
 
-      // Calcule la position sur le canvas
-      const canvas = (this.$el as HTMLElement).querySelector('.vue-flow');
-      if (!canvas) return;
+      // Calcule la position sur le canvas en tenant compte du viewport
+      const canvas = (this.$el as HTMLElement).querySelector('.vue-flow__viewport');
+      if (!canvas) {
+        console.warn('Canvas viewport not found');
+        return;
+      }
 
       const rect = canvas.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
+      const workflowStore = useWorkflowStore();
+      const viewport = workflowStore.viewport;
+      
+      // Position relative au viewport avec zoom
+      const x = (event.clientX - rect.left - viewport.x) / viewport.zoom;
+      const y = (event.clientY - rect.top - viewport.y) / viewport.zoom;
 
       // Crée le nœud
       const newNode: Node = {
@@ -311,12 +331,15 @@ export default defineComponent({
         data: {
           type: blockType,
           label: block.name,
-          config: {},
+          description: block.description,
+          category: block.category,
+          config: { ...block.defaultConfig },
           hasInput: block.inputs && block.inputs.length > 0,
           hasOutput: block.outputs && block.outputs.length > 0
         }
       };
 
+      console.log('Adding node:', newNode);
       this.addNode(newNode);
     },
 
@@ -418,20 +441,21 @@ export default defineComponent({
      * Récupère l'icône d'un type de bloc
      */
     getBlockIcon(type: string): string {
-      const icons: Record<string, string> = {
-        navigate: '🌐',
-        click: '👆',
-        type: '⌨️',
-        wait: '⏱️',
-        scroll: '📜',
-        screenshot: '📸',
-        extract: '📝',
-        condition: '🔀',
-        loop: '🔁',
-        output: '💾',
-        default: '📦'
-      };
-      return icons[type] || icons.default;
+      const block = blockDefinitions.find(b => b.type === type);
+      if (!block) {
+        console.warn('Block not found for icon:', type);
+        return 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4';
+      }
+      return block.icon;
+    },
+
+    getBlockColor(type: string): string {
+      const block = blockDefinitions.find(b => b.type === type);
+      if (!block) {
+        console.warn('Block not found for color:', type);
+        return '#6B7280';
+      }
+      return block.color || '#6B7280';
     }
   },
 
@@ -470,96 +494,49 @@ export default defineComponent({
 }
 
 /* Nœuds personnalisés */
+/* Custom Block Node */
 .custom-node {
-  min-width: 190px;
-  padding: 0;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  transition: all 0.2s ease;
-  /* Retrait de overflow: hidden pour laisser dépasser les handles */
+  @apply flex flex-col min-w-[200px] max-w-[280px] bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-150;
 }
 
 .custom-node:hover {
-  border-color: #a78bfa;
-  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.08);
+  @apply border-gray-300 dark:border-gray-600 shadow-md;
 }
 
 .custom-node.selected {
-  border-color: #8b5cf6;
-  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.1);
+  @apply border-blue-500 ring-2 ring-blue-500/10 shadow-lg !z-50;
 }
 
-.dark .custom-node {
-  background: #0f172a;
-  border-color: #1e293b;
-  color: #f1f5f9;
-}
-
-.dark .custom-node:hover {
-  border-color: #8b5cf6;
-}
-
-.node-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
+.node-content {
+  @apply flex items-center gap-3 p-3;
 }
 
 .node-icon {
-  font-size: 16px;
-  flex-shrink: 0;
-  opacity: 0.9;
+  @apply flex-shrink-0 w-8 h-8 rounded flex items-center justify-center;
+}
+
+.node-info {
+  @apply flex-1 min-w-0 flex flex-col justify-center;
 }
 
 .node-label {
-  flex: 1;
-  font-weight: 600;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
-  color: #475569;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  @apply text-sm font-bold text-gray-900 dark:text-gray-100 truncate leading-tight;
 }
 
-.dark .node-label {
-  color: #94a3b8;
+.node-description {
+  @apply text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 whitespace-normal line-clamp-1 italic;
 }
 
 .node-delete {
-  width: 18px;
-  height: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: transparent;
-  color: #94a3b8;
-  font-size: 16px;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: all 0.2s;
-  flex-shrink: 0;
-}
-
-.node-delete:hover {
-  background: #fee2e2;
-  color: #ef4444;
-}
-
-.dark .node-delete:hover {
-  background: rgba(239, 68, 68, 0.1);
+  @apply flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer;
+  @apply -mr-1 text-lg self-start;
 }
 
 /* Handles (ports de connexion) */
 .node-handle {
   width: 8px;
   height: 8px;
-  border: 2px solid #8b5cf6;
+  border: 2px solid #3b82f6;
   background: white;
   border-radius: 50%;
   transition: background 0.2s, border-color 0.2s;
@@ -588,17 +565,17 @@ export default defineComponent({
 
 .dark .node-handle {
   background: #0f172a;
-  border-color: #8b5cf6;
+  border-color: #3b82f6;
 }
 
 .node-handle:hover {
-  background: #8b5cf6;
-  border-color: #8b5cf6;
+  background: #3b82f6;
+  border-color: #3b82f6;
 }
 
 .dark .node-handle:hover {
-  background: #a78bfa;
-  border-color: #a78bfa;
+  background: #60a5fa;
+  border-color: #60a5fa;
 }
 
 /* Menu contextuel */

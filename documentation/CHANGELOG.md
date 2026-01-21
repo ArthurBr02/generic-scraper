@@ -5,6 +5,70 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.0.0-sprint6] - 2026-01-21
+
+### 🎨 Phase 3 - Sprint 6 : Configuration des blocs et conversion workflow
+
+#### Ajouté
+
+**Frontend - Panneau de configuration des blocs**
+- `components/workflow/BlockConfigPanel.vue` - Panneau de configuration dynamique :
+  - Affichage automatique selon le bloc sélectionné
+  - Génération dynamique du formulaire basée sur le schéma du bloc
+  - Validation en temps réel des champs
+  - Affichage des erreurs de validation
+  - Boutons réinitialiser et appliquer
+  - Support de tous les types de champs
+
+**Frontend - Composants de formulaire**
+- `components/form/TextField.vue` - Champ texte simple
+- `components/form/TextareaField.vue` - Champ texte multiligne
+- `components/form/NumberField.vue` - Champ numérique avec min/max
+- `components/form/SelectField.vue` - Liste déroulante
+- `components/form/CheckboxField.vue` - Case à cocher
+- `components/form/CodeField.vue` - Éditeur de code (CSS, JSON, etc.)
+- `components/form/KeyValueField.vue` - Paires clé-valeur (headers HTTP)
+- `components/form/ArrayField.vue` - Liste d'éléments
+
+**Frontend - Service de conversion**
+- `services/WorkflowConverter.ts` - Service de conversion bidirectionnel :
+  - `toConfig()` : Convertit le graphe VueFlow en JSON de configuration
+  - `fromConfig()` : Convertit un JSON en graphe VueFlow
+  - `validate()` : Valide la configuration générée
+  - `exportToJson()` : Export formaté en JSON
+  - `importFromJson()` : Import depuis JSON
+  - Tri topologique pour l'ordre d'exécution
+  - Gestion des conditions et branches
+  - Support des workflows complexes
+  - Calcul automatique des positions des blocs
+
+**Frontend - Toolbar de workflow**
+- `components/workflow/WorkflowToolbar.vue` - Barre d'outils du workflow :
+  - Bouton "Nouveau" pour créer un nouveau workflow
+  - Bouton "Importer" pour charger un JSON existant
+  - Bouton "Exporter" pour télécharger la configuration
+  - Bouton "Valider" pour vérifier la configuration
+  - Bouton "Sauvegarder" pour persister le workflow
+  - Modal de métadonnées (nom, description)
+  - Modal de validation avec liste d'erreurs
+  - Indicateur de modifications non sauvegardées
+
+**Frontend - Store Workflow amélioré**
+- Ajout de `updateNodeConfig()` pour mettre à jour la configuration d'un bloc
+- Ajout de `deselectAllNodes()` pour désélectionner tous les blocs
+- Amélioration de la gestion de l'état `isDirty`
+
+**Frontend - Vue TaskEditorView mise à jour**
+- Intégration du `WorkflowToolbar`
+- Intégration du `BlockConfigPanel`
+- Transition animée pour le panneau de configuration
+- Affichage conditionnel basé sur la sélection
+
+#### Modifié
+
+- `views/TaskEditorView.vue` - Intégration des nouveaux composants
+- `stores/workflow.ts` - Ajout de méthodes de gestion de configuration
+
 ## [2.0.0-sprint5] - 2026-01-21
 
 ### 🎨 Phase 3 - Sprint 5 : Canvas de workflow et connexions
