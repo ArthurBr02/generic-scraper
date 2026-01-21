@@ -6,7 +6,7 @@ async function main() {
     try {
         logger.info('🔧 Initializing Generic Scraper Backend...');
 
-        const app = createApp();
+        const app = await createApp();
         startServer(app);
 
     } catch (error) {

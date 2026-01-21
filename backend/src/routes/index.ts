@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import scraperRoutes from './scraper';
+import databaseRoutes from './database';
 
 const router = Router();
 
@@ -15,7 +16,7 @@ router.get('/health', (req: Request, res: Response) => {
             timestamp: new Date().toISOString(),
             uptime: process.uptime(),
             environment: process.env.NODE_ENV || 'development',
-            version: '1.4.0',
+            version: '1.5.0',
         },
     });
 });
@@ -29,18 +30,20 @@ router.get('/info', (req: Request, res: Response) => {
         success: true,
         data: {
             name: 'Generic Scraper API',
-            version: '1.4.0',
+            version: '1.5.0',
             description: 'Backend API pour Generic Scraper V2',
             endpoints: {
                 health: 'GET /api/health',
                 info: 'GET /api/info',
                 scraper: 'POST /api/scraper/*',
+                database: 'GET /api/database/*',
             },
         },
     });
 });
 
-// Mount scraper routes
+// Mount routes
 router.use('/scraper', scraperRoutes);
+router.use('/database', databaseRoutes);
 
 export default router;

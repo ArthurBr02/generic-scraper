@@ -5,9 +5,20 @@ import { logger } from './utils/logger.js';
 import { loggingMiddleware } from './middlewares/logging.js';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
 import apiRoutes from './routes/index.js';
+import { databaseService } from './services/DatabaseService.js';
 
-export function createApp(): Application {
+export async function createApp(): Promise<Application> {
     const app = express();
+
+    // Initialize database
+    try {
+        logger.info('Initializing database...');
+        await databaseService.init();
+        logger.info('✅ Database initialized successfully');
+    } catch (error: any) {
+        logger.error('Failed to initialize database', { error: error.message });
+        throw error;
+    }
 
     // Middlewares de base
     app.use(cors({
@@ -39,19 +50,25 @@ export function startServer(app: Application): void {
     });
 
     // Graceful shutdown
-    process.on('SIGTERM', () => {
-        logger.info('SIGTERM signal received: closing HTTP server');
-        server.close(() => {
+    const gracefulShutdown = async (signal: string) => {
+        logger.info(`${signal} signal received: closing server`);
+        
+        // Close HTTP server
+        server.close(async () => {
             logger.info('HTTP server closed');
+            
+            // Close database connection
+            try {
+                await databaseService.close();
+                logger.info('Database connection closed');
+            } catch (error: any) {
+                logger.error('Error closing database', { error: error.message });
+            }
+            
             process.exit(0);
         });
-    });
+    };
 
-    process.on('SIGINT', () => {
-        logger.info('SIGINT signal received: closing HTTP server');
-        server.close(() => {
-            logger.info('HTTP server closed');
-            process.exit(0);
-        });
-    });
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 }
