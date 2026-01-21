@@ -5,6 +5,7 @@ Mets à jour ce fichier pour savoir la version actuelle du projet.
 Lis le fichier `CHANGELOG.md` pour l'historique des versions et des modifications apportées.
 Lis le fichier `STRUCTURE.md` pour la structure du projet.
 
+Mets à jour ce fichier pour savoir à quel sprint le projet en est.
 ---
 
 *Projet mis à jour le 2026-01-20*  
