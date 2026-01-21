@@ -2,9 +2,13 @@
   <div class="workflow-toolbar flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
     <!-- Informations du workflow -->
     <div class="flex items-center gap-3">
-      <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-        {{ workflowName || 'Workflow sans nom' }}
-      </h2>
+      <input
+        v-model="workflowName"
+        type="text"
+        placeholder="Workflow sans nom"
+        class="text-lg font-semibold text-gray-900 dark:text-white bg-transparent border-b-2 border-transparent hover:border-gray-300 focus:border-blue-500 focus:outline-none px-2 py-1 transition-colors"
+        @focus="$event.target.select()"
+      />
       <span v-if="isDirty" class="text-xs text-orange-500" title="Modifications non sauvegardées">
         • Non sauvegardé
       </span>

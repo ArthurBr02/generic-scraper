@@ -8,11 +8,13 @@
             {{ blockDefinition?.name || 'Configuration' }}
           </h3>
           <button
-            @click="closePanel"
-            class="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded"
+            @click="saveConfig"
+            class="p-1.5 text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors"
+            :disabled="hasErrors"
+            title="Sauvegarder"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
             </svg>
           </button>
         </div>
@@ -42,6 +44,28 @@
 
     <!-- Form -->
     <div v-if="selectedBlock && blockDefinition" class="flex-1 overflow-y-auto p-4">
+      <!-- Nom du bloc (toujours affiché en premier) -->
+      <div class="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Nom du bloc
+        </label>
+        <input
+          v-model="blockLabel"
+          type="text"
+          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          placeholder="Nom du bloc"
+          @input="updateBlockLabel"
+        />
+      </div>
+
+      <!-- Debug info -->
+      <div v-if="!blockDefinition.configSchema || !blockDefinition.configSchema.fields" class="text-red-500 text-sm mb-4">
+        ⚠️ Aucun schéma de configuration disponible pour ce bloc
+      </div>
+      <div v-else-if="blockDefinition.configSchema.fields.length === 0" class="text-yellow-500 text-sm mb-4">
+        ⚠️ Ce bloc n'a aucun champ de configuration
+      </div>
+      
       <form @submit.prevent="saveConfig">
         <div class="space-y-4">
           <component
@@ -56,29 +80,11 @@
         </div>
       </form>
     </div>
-
-    <!-- Footer Actions -->
-    <div v-if="selectedBlock" class="flex-shrink-0 p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-      <div class="flex gap-2">
-        <button
-          @click="resetConfig"
-          type="button"
-          class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          Réinitialiser
-        </button>
-        <button
-          @click="saveConfig"
-          type="button"
-          class="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          :disabled="hasErrors"
-        >
-          Appliquer
-        </button>
-      </div>
-      <div v-if="hasErrors" class="mt-2 text-xs text-red-600 dark:text-red-400">
-        Veuillez corriger les erreurs avant de sauvegarder
-      </div>
+    
+    <!-- Message si pas de bloc sélectionné ou pas de définition trouvée -->
+    <div v-else-if="selectedBlock && !blockDefinition" class="flex-1 p-4 text-center text-gray-500">
+      <p class="text-sm">⚠️ Définition du bloc introuvable</p>
+      <p class="text-xs mt-2">Type: {{ selectedBlock.data?.type || selectedBlock.type }}</p>
     </div>
   </div>
 </template>
@@ -117,13 +123,18 @@ export default defineComponent({
   data() {
     return {
       localConfig: {} as Record<string, any>,
-      errors: {} as Record<string, string>
+      errors: {} as Record<string, string>,
+      blockLabel: ''
     };
   },
 
   computed: {
     ...mapState(useWorkflowStore, ['selectedNodes']),
-    ...mapState(useBlocksStore, ['blockDefinitions']),
+
+    blockDefinitions() {
+      const blocksStore = useBlocksStore();
+      return blocksStore.blocks;
+    },
 
     selectedBlock(): BlockInstance | null {
       const workflowStore = useWorkflowStore();
@@ -131,12 +142,31 @@ export default defineComponent({
         return null;
       }
       const selectedId = this.selectedNodes[0];
-      return workflowStore.nodes.find(node => node.id === selectedId) || null;
+      const node = workflowStore.nodes.find(node => node.id === selectedId);
+      
+      console.log('Selected block:', {
+        selectedId,
+        node,
+        allNodes: workflowStore.nodes
+      });
+      
+      return node || null;
     },
 
     blockDefinition(): BlockDefinition | undefined {
       if (!this.selectedBlock) return undefined;
-      return this.blockDefinitions.find(def => def.type === this.selectedBlock!.type);
+      
+      const blockType = this.selectedBlock.data?.type || this.selectedBlock.type;
+      console.log('Looking for block definition:', {
+        blockType,
+        selectedBlock: this.selectedBlock,
+        availableTypes: this.blockDefinitions.map(d => d.type)
+      });
+      
+      const definition = this.blockDefinitions.find(def => def.type === blockType);
+      console.log('Found definition:', definition);
+      
+      return definition;
     },
 
     hasErrors(): boolean {
@@ -150,11 +180,13 @@ export default defineComponent({
       handler(newBlock: BlockInstance | null) {
         if (newBlock) {
           // Initialiser la configuration locale avec la config du bloc
-          this.localConfig = { ...newBlock.config };
+          this.localConfig = { ...(newBlock.data?.config || {}) };
+          this.blockLabel = newBlock.data?.label || '';
           this.errors = {};
           this.validateAllFields();
         } else {
           this.localConfig = {};
+          this.blockLabel = '';
           this.errors = {};
         }
       }
@@ -190,6 +222,10 @@ export default defineComponent({
     updateFieldValue(key: string, value: any): void {
       this.localConfig[key] = value;
       this.validateField(key, value);
+    },
+
+    updateBlockLabel(): void {
+      // Le label sera sauvegardé lors du saveConfig
     },
 
     validateField(key: string, value: any): void {
@@ -273,16 +309,30 @@ export default defineComponent({
       }
 
       if (this.selectedBlock) {
+        const workflowStore = useWorkflowStore();
+        
+        console.log('Saving block label:', this.blockLabel);
+        console.log('Node ID:', this.selectedBlock.id);
+        
+        // Mettre à jour le label du bloc
+        workflowStore.updateNodeData(this.selectedBlock.id, {
+          label: this.blockLabel
+        });
+
+        // Mettre à jour la configuration
         this.updateNodeConfig({
           nodeId: this.selectedBlock.id,
           config: { ...this.localConfig }
         });
+        
+        console.log('Node after update:', workflowStore.nodes.find(n => n.id === this.selectedBlock.id));
       }
     },
 
     resetConfig(): void {
       if (this.selectedBlock && this.blockDefinition) {
         this.localConfig = { ...this.blockDefinition.defaultConfig };
+        this.blockLabel = this.blockDefinition.name;
         this.errors = {};
         this.validateAllFields();
       }

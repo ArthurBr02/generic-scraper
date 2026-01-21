@@ -42,48 +42,57 @@
 
       <!-- Template pour les nœuds personnalisés -->
       <template #node-custom="{ data, id }">
-        <div
-          :class="[
-            'custom-node',
-            `node-type-${data.type}`,
-            { selected: isNodeSelected(id) }
-          ]"
-          @contextmenu.prevent="showNodeContextMenu($event, id)"
-        >
-          <div class="node-content">
-            <div class="node-icon" :style="{ backgroundColor: getBlockColor(data.type) }">
-              <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="getBlockIcon(data.type)" />
-              </svg>
-            </div>
-            <div class="node-info">
-              <div class="node-label">{{ data.label || data.type }}</div>
-              <div v-if="data.description" class="node-description">{{ data.description }}</div>
-            </div>
-            <button
-              class="node-delete"
-              @click.stop="deleteNode(id)"
-              title="Supprimer"
-            >
-              ×
-            </button>
+        <div class="custom-node-wrapper">
+          
+          <!-- Label personnalisé au-dessus du bloc -->
+          <div v-if="data.label" class="node-label-above">
+            {{ data.label }}
           </div>
+          <div
+            :class="[
+              'custom-node',
+              `node-type-${data.type}`,
+              { selected: isNodeSelected(id) }
+            ]"
+            @contextmenu.prevent="showNodeContextMenu($event, id)"
+          >
+            <div class="flex items-center">
+              <div class="node-content">
+                <div class="node-icon" :style="{ backgroundColor: getBlockColor(data.type) }">
+                  <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="getBlockIcon(data.type)" />
+                  </svg>
+                </div>
+                <div class="node-info">
+                  <div class="node-type">{{ data.type }}</div>
+                  <div v-if="data.description" class="node-description">{{ data.description }}</div>
+                </div>
+                <button
+                  class="node-delete"
+                  @click.stop="deleteNode(id)"
+                  title="Supprimer"
+                >
+                  ×
+                </button>
+              </div>
 
-          <!-- Ports d'entrée -->
-          <Handle
-            v-if="data.hasInput !== false"
-            type="target"
-            :position="Position.Left"
-            class="node-handle node-handle-input"
-          />
+              <!-- Ports d'entrée -->
+              <Handle
+                v-if="data.hasInput !== false"
+                type="target"
+                :position="Position.Left"
+                class="node-handle node-handle-input"
+              />
 
-          <!-- Ports de sortie -->
-          <Handle
-            v-if="data.hasOutput !== false"
-            type="source"
-            :position="Position.Right"
-            class="node-handle node-handle-output"
-          />
+              <!-- Ports de sortie -->
+              <Handle
+                v-if="data.hasOutput !== false"
+                type="source"
+                :position="Position.Right"
+                class="node-handle node-handle-output"
+              />
+            </div>
+          </div>
         </div>
       </template>
 
@@ -345,6 +354,9 @@ export default defineComponent({
 
       console.log('Adding node:', newNode);
       this.addNode(newNode);
+      
+      // Sélectionne automatiquement le node pour ouvrir le panneau de configuration
+      workflowStore.selectNode(newNode.id);
     },
 
     /**
@@ -504,6 +516,17 @@ export default defineComponent({
 }
 
 /* Nœuds personnalisés */
+.custom-node-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.node-label-above {
+  @apply text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 px-3 py-1 rounded-md shadow-sm mb-2 whitespace-nowrap border border-gray-200 dark:border-gray-700;
+}
+
 /* Custom Block Node */
 .custom-node {
   @apply flex flex-col min-w-[200px] max-w-[280px] bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-150;
@@ -529,7 +552,7 @@ export default defineComponent({
   @apply flex-1 min-w-0 flex flex-col justify-center;
 }
 
-.node-label {
+.node-type {
   @apply text-sm font-bold text-gray-900 dark:text-gray-100 truncate leading-tight;
 }
 

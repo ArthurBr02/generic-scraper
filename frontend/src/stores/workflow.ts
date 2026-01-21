@@ -110,10 +110,31 @@ export const useWorkflowStore = defineStore('workflow', {
      * Met à jour les données d'un nœud
      */
     updateNodeData(nodeId: string, data: any): void {
-      const node = this.nodes.find((n) => n.id === nodeId);
-      if (node) {
-        node.data = { ...node.data, ...data };
+      console.log('updateNodeData called:', nodeId, data);
+      const nodeIndex = this.nodes.findIndex((n) => n.id === nodeId);
+      console.log('Node index:', nodeIndex, 'Total nodes:', this.nodes.length);
+      
+      if (nodeIndex !== -1) {
+        const oldNode = this.nodes[nodeIndex];
+        console.log('Old node data:', oldNode.data);
+        
+        // Créer un nouveau nœud pour forcer la réactivité
+        const updatedNode = {
+          ...this.nodes[nodeIndex],
+          data: { ...this.nodes[nodeIndex].data, ...data }
+        };
+        
+        // Créer un nouveau tableau pour forcer VueFlow à détecter le changement
+        this.nodes = [
+          ...this.nodes.slice(0, nodeIndex),
+          updatedNode,
+          ...this.nodes.slice(nodeIndex + 1)
+        ];
+        
+        console.log('New node data:', updatedNode.data);
         this.isDirty = true;
+      } else {
+        console.error('Node not found:', nodeId);
       }
     },
 
