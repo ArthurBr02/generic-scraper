@@ -6,6 +6,15 @@ Lis le fichier `CHANGELOG.md` pour l'historique des versions et des modification
 Lis le fichier `STRUCTURE.md` pour la structure du projet.
 
 Mets à jour ce fichier pour savoir à quel sprint le projet en est.
+
+Ne génère pas de documentation après chaque action c'est inutile.
+
+# Tâche terminée
+Phase 1 - Sprint 1.1
+
+# Tâche suivante
+Phase 1 - Sprint 1.2
+
 ---
 
 *Projet mis à jour le 2026-01-20*  
