@@ -13,7 +13,7 @@
 
         <!-- Editeur Vue Flow -->
         <div class="flex-1 relative overflow-hidden">
-          <WorkflowCanvas />
+            <WorkflowCanvas />
         </div>
 
         <!-- Sidebar Droite : Configuration -->

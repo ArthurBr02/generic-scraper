@@ -32,8 +32,12 @@
       <!-- Mini carte de navigation -->
       <MiniMap
         :node-color="getNodeColor"
-        :node-stroke-width="3"
+        :node-stroke-color="getNodeStrokeColor"
+        :node-class-name="getNodeClassName"
+        :node-border-radius="4"
         position="bottom-right"
+        :pannable="true"
+        :zoomable="true"
       />
 
       <!-- Template pour les nœuds personnalisés -->
@@ -424,17 +428,23 @@ export default defineComponent({
      * Récupère la couleur d'un nœud pour la minimap
      */
     getNodeColor(node: Node): string {
-      const type = node.data?.type || 'default';
-      const colors: Record<string, string> = {
-        navigation: '#3b82f6',
-        action: '#8b5cf6',
-        extraction: '#10b981',
-        condition: '#f59e0b',
-        loop: '#ec4899',
-        output: '#06b6d4',
-        default: '#6b7280'
-      };
-      return colors[type] || colors.default;
+      const type = node.data?.type;
+      if (!type) return '#6B7280';
+      return this.getBlockColor(type);
+    },
+
+    /**
+     * Récupère la couleur de bordure d'un nœud pour la minimap
+     */
+    getNodeStrokeColor(node: Node): string {
+      return this.isNodeSelected(node.id) ? '#3B82F6' : '#E5E7EB';
+    },
+
+    /**
+     * Récupère la classe CSS d'un nœud pour la minimap
+     */
+    getNodeClassName(node: Node): string {
+      return 'minimap-node';
     },
 
     /**
@@ -613,5 +623,35 @@ export default defineComponent({
 
 .dark .context-menu button:hover {
   background: #4b5563;
+}
+
+/* MiniMap styles */
+:deep(.vue-flow__minimap) {
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+:deep(.dark .vue-flow__minimap) {
+  background-color: #1f2937;
+  border-color: #374151;
+}
+
+:deep(.vue-flow__minimap-mask) {
+  fill: rgba(0, 0, 0, 0.05);
+}
+
+:deep(.dark .vue-flow__minimap-mask) {
+  fill: rgba(255, 255, 255, 0.05);
+}
+
+:deep(.vue-flow__minimap-node) {
+  stroke-width: 2;
+  opacity: 0.8;
+}
+
+:deep(.vue-flow__minimap-node:hover) {
+  opacity: 1;
 }
 </style>
