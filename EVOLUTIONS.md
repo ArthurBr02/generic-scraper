@@ -30,6 +30,7 @@ Gestion d'utilisateurs et authentification (ex: OAuth, JWT).
 ## Améliorer les performances du scraper en optimisant l'utilisation des ressources (ex: gestion de la mémoire, parallélisation des tâches).
 - Analyser les goulots d'étranglement actuels et proposer des solutions pour les améliorer.
 - Implémenter la parallélisation des tâches de scraping pour accélérer le processus.
+## Améliorations ergonomie utilisateur 
 - Ajouter assistant de création de config via LLM (mistral ai) 
 - Implémenter génération LM depuis CV (choix de la langue, etc ...)
 # V4 - Améliorations diverses
