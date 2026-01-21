@@ -213,7 +213,7 @@ export default defineComponent({
 
   methods: {
     ...mapActions(useWorkflowStore, ['reset', 'loadWorkflow', 'markAsSaved']),
-    ...mapActions(useNotificationStore, ['showNotification']),
+    ...mapActions(useNotificationStore, ['success', 'error']),
 
     newWorkflow(): void {
       if (this.isDirty) {
@@ -223,7 +223,7 @@ export default defineComponent({
 
       this.reset();
       this.workflowName = '';
-      this.showNotification({ message: 'Nouveau workflow créé', type: 'success' });
+      this.success('Nouveau workflow créé');
     },
 
     triggerImport(): void {
@@ -256,18 +256,12 @@ export default defineComponent({
         this.loadWorkflow({ nodes, edges });
         this.workflowName = config.name;
         
-        this.showNotification({
-          message: `Workflow "${config.name}" importé avec succès`,
-          type: 'success'
-        });
+        this.success(`Workflow "${config.name}" importé avec succès`);
 
         // Réinitialiser l'input
         input.value = '';
       } catch (error) {
-        this.showNotification({
-          message: `Erreur lors de l'import: ${(error as Error).message}`,
-          type: 'error'
-        });
+        this.error(`Erreur lors de l'import: ${(error as Error).message}`);
       }
     },
 
@@ -311,15 +305,9 @@ export default defineComponent({
         this.workflowName = this.metadata.name;
         this.showMetadataModal = false;
         
-        this.showNotification({
-          message: 'Workflow exporté avec succès',
-          type: 'success'
-        });
+        this.success('Workflow exporté avec succès');
       } catch (error) {
-        this.showNotification({
-          message: `Erreur lors de l'export: ${(error as Error).message}`,
-          type: 'error'
-        });
+        this.error(`Erreur lors de l'export: ${(error as Error).message}`);
       }
     },
 
@@ -334,10 +322,7 @@ export default defineComponent({
         this.validationErrors = WorkflowConverter.validate(config);
         this.showValidationModal = true;
       } catch (error) {
-        this.showNotification({
-          message: `Erreur lors de la validation: ${(error as Error).message}`,
-          type: 'error'
-        });
+        this.error(`Erreur lors de la validation: ${(error as Error).message}`);
       }
     },
 
@@ -354,15 +339,9 @@ export default defineComponent({
         // await api.saveWorkflow(config);
 
         this.markAsSaved();
-        this.showNotification({
-          message: 'Workflow sauvegardé',
-          type: 'success'
-        });
+        this.success('Workflow sauvegardé');
       } catch (error) {
-        this.showNotification({
-          message: `Erreur lors de la sauvegarde: ${(error as Error).message}`,
-          type: 'error'
-        });
+        this.error(`Erreur lors de la sauvegarde: ${(error as Error).message}`);
       }
     }
   }
