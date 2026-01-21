@@ -5,6 +5,69 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.4.0] - 2026-01-21
+
+### ✨ Intégration du moteur de scraping comme bibliothèque
+
+#### Ajouté
+
+**Bibliothèque (`src/lib.js`)**
+- Point d'entrée pour utiliser le scraper comme bibliothèque Node.js
+- API propre et documentée pour l'intégration dans des applications externes
+- Fonction `execute(config, options)` pour exécuter des configurations
+- Fonction `executeFromFile(configPath, options)` pour charger depuis un fichier
+- Fonction `validateConfiguration(config)` pour valider les configurations
+- Fonction `getAvailableActions()` pour lister les actions disponibles
+- Fonction `getActionSchema(type)` pour récupérer les schémas d'actions
+- Support des options d'exécution (headless, logLevel, callbacks)
+
+**Backend - Service Layer**
+- `ScraperService.ts` - Service qui encapsule l'utilisation de la bibliothèque
+- Support de l'exécution de configurations (objet ou fichier)
+- Validation de configurations
+- Récupération des schémas d'actions
+- Events pour le suivi en temps réel (start, progress, complete, error)
+
+**Backend - API REST**
+- `POST /api/scraper/execute` - Exécuter une configuration
+- `POST /api/scraper/validate` - Valider une configuration
+- `GET /api/scraper/actions` - Lister les actions disponibles
+- `GET /api/scraper/actions/:type` - Récupérer le schéma d'une action
+- `GET /api/scraper/actions/schemas/all` - Récupérer tous les schémas
+
+**Types TypeScript**
+- Interfaces complètes pour les configurations du scraper
+- Types pour les résultats d'exécution
+- Types pour les schémas d'actions
+- Types pour la validation
+
+**Documentation**
+- `LIBRARY_INTEGRATION.md` - Guide d'utilisation de la bibliothèque
+- Exemples d'utilisation programmatique
+- Documentation de l'API REST
+- Guide d'intégration dans le backend
+
+**Tests**
+- Script de test `test-lib-integration.js`
+- Validation de l'intégration de la bibliothèque
+- Tests de non-régression CLI
+
+#### Garanti
+- ✅ **CLI 100% fonctionnel** - Aucune régression du mode ligne de commande
+- ✅ **Pas de breaking changes** - Toutes les fonctionnalités existantes préservées
+- ✅ **Rétrocompatibilité** - Les anciennes configurations fonctionnent toujours
+- ✅ **Architecture propre** - Séparation CLI / Bibliothèque / API
+- ✅ **Pas de dépendances supplémentaires** - Utilise les modules existants
+
+#### Technique
+- Exposition des modules via `src/lib.js` sans modification du code existant
+- Intégration TypeScript dans le backend
+- Service pattern pour l'encapsulation
+- Controller pattern pour les endpoints API
+- Event-driven architecture pour le suivi en temps réel
+
+---
+
 ## [1.0.0] - 2026-01-20
 
 ### ✨ Version initiale complète

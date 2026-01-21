@@ -13,13 +13,16 @@ generic-scraper/
 │   ├── AGENTS.md                    # Suivi du projet
 │   ├── package.json                 # Configuration npm
 │   ├── .gitignore                   # Fichiers ignorés par Git
-│   └── start.bat                    # Script de lancement Windows
+│   ├── start.bat                    # Script de lancement Windows
+│   └── test-lib-integration.js      # Tests d'intégration bibliothèque
 │
 ├── 📚 Documentation
 │   └── documentation/
-│       ├── plan.md                  # Plan d'implémentation
+│       ├── plan_v2.md               # Plan d'implémentation V2
 │       ├── configuration.md         # Guide de configuration complet
-│       └── examples.md              # Exemples d'utilisation
+│       ├── examples.md              # Exemples d'utilisation
+│       ├── LIBRARY_INTEGRATION.md   # Guide d'intégration bibliothèque
+│       └── STRUCTURE.md             # Ce fichier
 │
 ├── ⚙️ Configuration
 │   ├── data/
@@ -35,9 +38,10 @@ generic-scraper/
 │           ├── scheduled-*.json
 │           └── ...
 │
-├── 💻 Code source
+├── 💻 Code source - Scraper
 │   └── src/
 │       ├── index.js                 # Point d'entrée CLI
+│       ├── lib.js                   # Point d'entrée bibliothèque (nouveau)
 │       │
 │       ├── core/                    # Composants principaux
 │       │   ├── browser.js           # Gestion Playwright
@@ -80,6 +84,66 @@ generic-scraper/
 │       │
 │       └── schemas/                 # Schémas de validation
 │           └── workflow.schema.json # Schéma des workflows
+│
+├── 🖥️ Backend - API & Services
+│   └── backend/
+│       ├── package.json             # Dépendances backend
+│       ├── tsconfig.json            # Configuration TypeScript
+│       ├── Dockerfile               # Image Docker production
+│       ├── Dockerfile.dev           # Image Docker développement
+│       └── src/
+│           ├── app.ts               # Application Express
+│           ├── index.ts             # Point d'entrée
+│           ├── config.ts            # Configuration
+│           │
+│           ├── controllers/         # Contrôleurs API
+│           │   └── ScraperController.ts
+│           │
+│           ├── routes/              # Routes Express
+│           │   ├── index.ts         # Routes principales
+│           │   └── scraper.ts       # Routes scraper
+│           │
+│           ├── services/            # Services métier
+│           │   └── ScraperService.ts
+│           │
+│           ├── middlewares/         # Middlewares
+│           │
+│           ├── types/               # Types TypeScript
+│           │   └── scraper.types.ts
+│           │
+│           ├── utils/               # Utilitaires backend
+│           │
+│           └── websocket/           # WebSocket (prévu)
+│
+├── 🎨 Frontend - Interface Web
+│   └── frontend/
+│       ├── package.json             # Dépendances frontend
+│       ├── vite.config.ts           # Configuration Vite
+│       ├── tsconfig.json            # Configuration TypeScript
+│       ├── tailwind.config.js       # Configuration Tailwind
+│       ├── Dockerfile               # Image Docker production
+│       ├── Dockerfile.dev           # Image Docker développement
+│       └── src/
+│           ├── main.ts              # Point d'entrée
+│           ├── App.vue              # Composant racine
+│           │
+│           ├── components/          # Composants Vue
+│           │   ├── common/          # Composants réutilisables
+│           │   ├── layout/          # Layout
+│           │   ├── workflow/        # Éditeur de workflow
+│           │   └── blocks/          # Blocs d'actions
+│           │
+│           ├── views/               # Pages
+│           ├── stores/              # Pinia stores
+│           ├── services/            # Services API
+│           ├── types/               # Types TypeScript
+│           └── utils/               # Utilitaires
+│
+├── 🐳 Docker
+│   ├── docker-compose.yml           # Composition production
+│   ├── docker-compose.dev.yml       # Composition développement
+│   ├── docker-start.bat             # Lancement Windows
+│   └── docker-start.sh              # Lancement Linux/Mac
 │
 └── 📁 Répertoires générés (gitignored)
     ├── node_modules/                # Dépendances npm
