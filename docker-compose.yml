@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  # Frontend - Vue.js application
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: generic-scraper-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    environment:
+      - VITE_API_URL=http://localhost:4000
+      - VITE_WS_URL=ws://localhost:4000
+    networks:
+      - scraper-network
+    restart: unless-stopped
+
+  # Backend - Node.js/Express API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: generic-scraper-backend
+    ports:
+      - "4000:4000"
+    volumes:
+      # Volumes persistants pour les données
+      - ./configs:/app/configs
+      - ./logs:/app/logs
+      - ./output:/app/output
+      - ./data:/app/data
+      # Volume pour le moteur de scraping existant (monté dans un dossier différent)
+      - ./src:/app/scraper-engine
+    environment:
+      - NODE_ENV=development
+      - PORT=4000
+      - HOST=0.0.0.0
+      - DATABASE_PATH=/app/data/scraper.db
+      - CORS_ORIGIN=http://localhost:3000
+      - LOG_LEVEL=info
+      - SCRAPER_ENGINE_PATH=/app/scraper-engine
+    networks:
+      - scraper-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:4000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+networks:
+  scraper-network:
+    driver: bridge
+
+volumes:
+  # Volumes nommés pour une meilleure gestion
+  configs:
+  logs:
+  output:
+  data:

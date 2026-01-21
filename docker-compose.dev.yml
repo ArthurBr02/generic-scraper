@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  # Frontend - Mode développement avec hot-reload
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: generic-scraper-frontend-dev
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      # Mount source code for hot-reload
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/index.html:/app/index.html
+      - ./frontend/vite.config.ts:/app/vite.config.ts
+      - ./frontend/tailwind.config.js:/app/tailwind.config.js
+      - ./frontend/postcss.config.js:/app/postcss.config.js
+      # Exclude node_modules
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:4000
+      - VITE_WS_URL=ws://localhost:4000
+    networks:
+      - scraper-network
+    restart: unless-stopped
+    command: npm run dev -- --host 0.0.0.0
+
+  # Backend - Mode développement avec hot-reload
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: generic-scraper-backend-dev
+    ports:
+      - "4000:4000"
+    volumes:
+      # Mount source code for hot-reload
+      - ./backend/src:/app/src
+      - ./backend/tsconfig.json:/app/tsconfig.json
+      - ./backend/.eslintrc.json:/app/.eslintrc.json
+      # Exclude node_modules
+      - /app/node_modules
+      # Volumes persistants
+      - ./configs:/app/configs
+      - ./logs:/app/logs
+      - ./output:/app/output
+      - ./data:/app/data
+      # Moteur de scraping existant (monté dans un dossier différent)
+      - ./src:/app/scraper-engine
+    environment:
+      - NODE_ENV=development
+      - PORT=4000
+      - HOST=0.0.0.0
+      - DATABASE_PATH=/app/data/scraper.db
+      - CORS_ORIGIN=http://localhost:3000
+      - LOG_LEVEL=debug
+      - SCRAPER_ENGINE_PATH=/app/scraper-engine
+    networks:
+      - scraper-network
+    restart: unless-stopped
+    command: npm run dev
+
+networks:
+  scraper-network:
+    driver: bridge

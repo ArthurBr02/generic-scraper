@@ -9,14 +9,18 @@ Mets à jour ce fichier pour savoir à quel sprint le projet en est.
 
 Ne génère pas de documentation après chaque action c'est inutile.
 
+N'exécute aucune commande dans un terminal, propose seulement les commandes à exécuter (format textuel).
+
 # Tâche terminée
 Phase 1 - Sprint 1.1
+Phase 1 - Sprint 1.2
+Phase 1 - Sprint 1.3
 
 # Tâche suivante
-Phase 1 - Sprint 1.2
+Phase 1 - Sprint 1.4
 
 ---
 
-*Projet mis à jour le 2026-01-20*  
-*Version : 1.1.0*  
+*Projet mis à jour le 2026-01-21*  
+*Version : 1.3.0*  
 *Status : Production Ready ✅*

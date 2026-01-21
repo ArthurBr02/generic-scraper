@@ -23,7 +23,7 @@ La V2 introduit une interface utilisateur graphique (GUI) web permettant de cré
 |-----------|-------------|
 | Frontend | Vue.js 3 (Options API) + TypeScript + Tailwind CSS |
 | Backend | Node.js + Express |
-| Base de données | SQLite (better-sqlite3 ou sqlite3) |
+| Base de données | SQLite (sqlite3) |
 | Communication temps réel | WebSocket (Socket.io) |
 | Containerisation | Docker + Docker Compose |
 | Stockage configurations | JSON (dossier `configs/`) |
@@ -331,7 +331,7 @@ module.exports = {
 > - Compatible avec Docker (volume persistant)
 
 **Tâches** :
-- [ ] Installer `better-sqlite3` (synchrone, performant) ou `sqlite3` (asynchrone)
+- [ ] Installer `sqlite3` (asynchrone, compatible avec toutes les versions de Node.js)
 - [ ] Créer le dossier `data/` à la racine du projet
 - [ ] Créer le service `DatabaseService` pour la gestion de la BDD
 - [ ] Implémenter les migrations automatiques au démarrage
@@ -442,9 +442,10 @@ INSERT OR IGNORE INTO settings (key, value, type, description) VALUES
 
 ```javascript
 // backend/src/services/DatabaseService.js
-const Database = require('better-sqlite3');
+const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
+const { promisify } = require('util');
 
 class DatabaseService {
   constructor(dbPath) {
@@ -456,26 +457,33 @@ class DatabaseService {
       fs.mkdirSync(dir, { recursive: true });
     }
     
-    this.db = new Database(this.dbPath);
-    this.db.pragma('journal_mode = WAL');  // Meilleure performance
+    this.db = new sqlite3.Database(this.dbPath);
     
-    this.runMigrations();
+    // Promisifier les méthodes de base
+    this.run = promisify(this.db.run.bind(this.db));
+    this.get = promisify(this.db.get.bind(this.db));
+    this.all = promisify(this.db.all.bind(this.db));
+    this.exec = promisify(this.db.exec.bind(this.db));
   }
   
-  runMigrations() {
+  async init() {
+    // Activer le mode WAL pour de meilleures performances
+    await this.run('PRAGMA journal_mode = WAL');
+    await this.runMigrations();
+  }
+  
+  async runMigrations() {
     // Exécuter le schéma SQL ci-dessus
     const schema = fs.readFileSync('./sql/schema.sql', 'utf8');
-    this.db.exec(schema);
+    await this.exec(schema);
   }
   
   // === Executions ===
   
-  createExecution(execution) {
-    const stmt = this.db.prepare(`
-      INSERT INTO executions (id, task_id, task_name, status, started_at)
-      VALUES (?, ?, ?, ?, ?)
-    `);
-    return stmt.run(
+  async createExecution(execution) {
+    return await this.run(
+      `INSERT INTO executions (id, task_id, task_name, status, started_at)
+       VALUES (?, ?, ?, ?, ?)`,
       execution.id,
       execution.taskId,
       execution.taskName,
@@ -484,78 +492,96 @@ class DatabaseService {
     );
   }
   
-  updateExecution(id, data) {
+  async updateExecution(id, data) {
     const fields = Object.keys(data)
       .map(k => `${this.camelToSnake(k)} = ?`)
       .join(', ');
-    const stmt = this.db.prepare(`UPDATE executions SET ${fields} WHERE id = ?`);
-    return stmt.run(...Object.values(data), id);
+    return await this.run(
+      `UPDATE executions SET ${fields} WHERE id = ?`,
+      ...Object.values(data),
+      id
+    );
   }
   
-  getExecution(id) {
-    return this.db.prepare('SELECT * FROM executions WHERE id = ?').get(id);
+  async getExecution(id) {
+    return await this.get('SELECT * FROM executions WHERE id = ?', id);
   }
   
-  getExecutionsByTask(taskId, limit = 50) {
-    return this.db.prepare(`
-      SELECT * FROM executions 
-      WHERE task_id = ? 
-      ORDER BY started_at DESC 
-      LIMIT ?
-    `).all(taskId, limit);
+  async getExecutionsByTask(taskId, limit = 50) {
+    return await this.all(
+      `SELECT * FROM executions 
+       WHERE task_id = ? 
+       ORDER BY started_at DESC 
+       LIMIT ?`,
+      taskId,
+      limit
+    );
   }
   
-  getRecentExecutions(limit = 50) {
-    return this.db.prepare(`
-      SELECT * FROM executions 
-      ORDER BY started_at DESC 
-      LIMIT ?
-    `).all(limit);
+  async getRecentExecutions(limit = 50) {
+    return await this.all(
+      `SELECT * FROM executions 
+       ORDER BY started_at DESC 
+       LIMIT ?`,
+      limit
+    );
   }
   
   // === Logs ===
   
-  addLog(executionId, level, message, stepId = null, stepName = null, metadata = null) {
-    const stmt = this.db.prepare(`
-      INSERT INTO execution_logs (execution_id, level, message, step_id, step_name, metadata)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `);
-    return stmt.run(executionId, level, message, stepId, stepName, 
-      metadata ? JSON.stringify(metadata) : null);
+  async addLog(executionId, level, message, stepId = null, stepName = null, metadata = null) {
+    return await this.run(
+      `INSERT INTO execution_logs (execution_id, level, message, step_id, step_name, metadata)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      executionId,
+      level,
+      message,
+      stepId,
+      stepName,
+      metadata ? JSON.stringify(metadata) : null
+    );
   }
   
-  getLogsByExecution(executionId) {
-    return this.db.prepare(`
-      SELECT * FROM execution_logs 
-      WHERE execution_id = ? 
-      ORDER BY timestamp ASC
-    `).all(executionId);
+  async getLogsByExecution(executionId) {
+    return await this.all(
+      `SELECT * FROM execution_logs 
+       WHERE execution_id = ? 
+       ORDER BY timestamp ASC`,
+      executionId
+    );
   }
   
   // === Task Metadata ===
   
-  updateTaskStats(taskId, success) {
-    const stmt = this.db.prepare(`
-      INSERT INTO tasks_metadata (task_id, run_count, success_count, failure_count, last_run_at, last_run_status)
-      VALUES (?, 1, ?, ?, datetime('now'), ?)
-      ON CONFLICT(task_id) DO UPDATE SET
-        run_count = run_count + 1,
-        success_count = success_count + ?,
-        failure_count = failure_count + ?,
-        last_run_at = datetime('now'),
-        last_run_status = ?,
-        updated_at = datetime('now')
-    `);
+  async updateTaskStats(taskId, success) {
     const successVal = success ? 1 : 0;
     const failureVal = success ? 0 : 1;
     const status = success ? 'completed' : 'failed';
-    return stmt.run(successVal, failureVal, status, successVal, failureVal, status);
+    
+    return await this.run(
+      `INSERT INTO tasks_metadata (task_id, run_count, success_count, failure_count, last_run_at, last_run_status)
+       VALUES (?, 1, ?, ?, datetime('now'), ?)
+       ON CONFLICT(task_id) DO UPDATE SET
+         run_count = run_count + 1,
+         success_count = success_count + ?,
+         failure_count = failure_count + ?,
+         last_run_at = datetime('now'),
+         last_run_status = ?,
+         updated_at = datetime('now')`,
+      taskId,
+      successVal,
+      failureVal,
+      status,
+      successVal,
+      failureVal,
+      status
+    );
   }
   
   // === Settings ===
   
-  getSetting(key) {
-    const row = this.db.prepare('SELECT value, type FROM settings WHERE key = ?').get(key);
+  async getSetting(key) {
+    const row = await this.get('SELECT value, type FROM settings WHERE key = ?', key);
     if (!row) return null;
     
     switch (row.type) {
@@ -566,31 +592,36 @@ class DatabaseService {
     }
   }
   
-  setSetting(key, value, type = 'string') {
-    const stmt = this.db.prepare(`
-      INSERT INTO settings (key, value, type, updated_at)
-      VALUES (?, ?, ?, datetime('now'))
-      ON CONFLICT(key) DO UPDATE SET value = ?, updated_at = datetime('now')
-    `);
+  async setSetting(key, value, type = 'string') {
     const strValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
-    return stmt.run(key, strValue, type, strValue);
+    return await this.run(
+      `INSERT INTO settings (key, value, type, updated_at)
+       VALUES (?, ?, ?, datetime('now'))
+       ON CONFLICT(key) DO UPDATE SET value = ?, updated_at = datetime('now')`,
+      key,
+      strValue,
+      type,
+      strValue
+    );
   }
   
   // === Cleanup ===
   
-  cleanupOldData() {
-    const logDays = this.getSetting('log_retention_days') || 30;
-    const execDays = this.getSetting('execution_retention_days') || 90;
+  async cleanupOldData() {
+    const logDays = await this.getSetting('log_retention_days') || 30;
+    const execDays = await this.getSetting('execution_retention_days') || 90;
     
-    this.db.prepare(`
-      DELETE FROM execution_logs 
-      WHERE timestamp < datetime('now', '-' || ? || ' days')
-    `).run(logDays);
+    await this.run(
+      `DELETE FROM execution_logs 
+       WHERE timestamp < datetime('now', '-' || ? || ' days')`,
+      logDays
+    );
     
-    this.db.prepare(`
-      DELETE FROM executions 
-      WHERE created_at < datetime('now', '-' || ? || ' days')
-    `).run(execDays);
+    await this.run(
+      `DELETE FROM executions 
+       WHERE created_at < datetime('now', '-' || ? || ' days')`,
+      execDays
+    );
   }
   
   // Utilitaire
