@@ -1,5 +1,19 @@
 <template>
-  <g>
+  <g 
+    @mouseenter="isHovered = true" 
+    @mouseleave="isHovered = false"
+    class="custom-edge"
+  >
+    <!-- Zone de clic élargie pour faciliter la sélection -->
+    <path
+      :d="path"
+      fill="none"
+      stroke="transparent"
+      stroke-width="20"
+      class="edge-click-area"
+      @click="onSelect"
+    />
+
     <!-- Ligne de connexion principale -->
     <path
       :id="id"
@@ -16,26 +30,27 @@
       </textPath>
     </text>
 
-    <!-- Point de suppression -->
-    <circle
-      v-if="showDeleteButton"
-      :cx="centerX"
-      :cy="centerY"
-      r="10"
-      class="edge-delete-button"
-      @click="onDeleteEdge"
-    />
-    <text
-      v-if="showDeleteButton"
-      :x="centerX"
-      :y="centerY"
-      class="edge-delete-icon"
-      text-anchor="middle"
-      dominant-baseline="middle"
-      @click="onDeleteEdge"
+    <!-- Bouton de suppression moderne -->
+    <g
+      :class="['edge-delete-container', { 'is-visible': showDeleteButton }]"
+      @click.stop="onDeleteEdge"
     >
-      ×
-    </text>
+      <!-- Zone de hit plus large et invisible pour stabiliser le hover -->
+      <circle :cx="labelX" :cy="labelY" r="14" fill="transparent" class="cursor-pointer" />
+      
+      <g class="edge-delete-button-visual">
+        <circle
+          :cx="labelX"
+          :cy="labelY"
+          r="10"
+          class="edge-delete-bg"
+        />
+        <path
+          :d="`M${labelX - 3} ${labelY - 3}L${labelX + 3} ${labelY + 3}M${labelX - 3} ${labelY + 3}L${labelX + 3} ${labelY - 3}`"
+          class="edge-delete-cross"
+        />
+      </g>
+    </g>
   </g>
 </template>
 
@@ -87,6 +102,10 @@ export default defineComponent({
     selected: {
       type: Boolean as PropType<boolean>,
       default: false
+    },
+    isDarkMode: {
+      type: Boolean as PropType<boolean>,
+      default: false
     }
   },
 
@@ -98,32 +117,30 @@ export default defineComponent({
 
   computed: {
     /**
-     * Calcule le chemin de la connexion
+     * Calcule le chemin de la connexion et les coordonnées du label
      */
-    path(): string {
-      const [path] = getSmoothStepPath({
+    edgeParams() {
+      return getSmoothStepPath({
         sourceX: this.sourceX,
         sourceY: this.sourceY,
         targetX: this.targetX,
         targetY: this.targetY,
         sourcePosition: this.sourcePosition as any,
-        targetPosition: this.targetPosition as any
+        targetPosition: this.targetPosition as any,
+        borderRadius: 16
       });
-      return path;
     },
 
-    /**
-     * Centre X de la connexion pour le bouton de suppression
-     */
-    centerX(): number {
-      return (this.sourceX + this.targetX) / 2;
+    path(): string {
+      return this.edgeParams[0];
     },
 
-    /**
-     * Centre Y de la connexion pour le bouton de suppression
-     */
-    centerY(): number {
-      return (this.sourceY + this.targetY) / 2;
+    labelX(): number {
+      return this.edgeParams[1];
+    },
+
+    labelY(): number {
+      return this.edgeParams[2];
     },
 
     /**
@@ -168,22 +185,22 @@ export default defineComponent({
       };
 
       if (this.state === 'active') {
-        baseStyle.stroke = '#3b82f6';
+        baseStyle.stroke = '#8b5cf6';
         baseStyle.strokeWidth = 3;
       } else if (this.state === 'error') {
         baseStyle.stroke = '#ef4444';
         baseStyle.strokeWidth = 2;
         baseStyle.strokeDasharray = '5,5';
       } else if (this.connectionType === 'data') {
-        baseStyle.stroke = '#8b5cf6';
+        baseStyle.stroke = '#ec4899';
         baseStyle.strokeDasharray = '3,3';
       } else {
-        baseStyle.stroke = '#b1b1b7';
+        baseStyle.stroke = this.isDarkMode ? '#374151' : '#d1d5db';
       }
 
       if (this.selected) {
         baseStyle.strokeWidth = 3;
-        baseStyle.stroke = '#3b82f6';
+        baseStyle.stroke = '#8b5cf6';
       }
 
       return baseStyle;
@@ -199,6 +216,13 @@ export default defineComponent({
 
   methods: {
     /**
+     * Sélection de l'edge
+     */
+    onSelect(): void {
+      // La sélection est gérée par Vue Flow, mais on peut ajouter une logique ici si besoin
+    },
+
+    /**
      * Suppression de l'edge
      */
     onDeleteEdge(): void {
@@ -209,18 +233,28 @@ export default defineComponent({
 </script>
 
 <style scoped>
+.custom-edge {
+  outline: none;
+}
+
+.edge-click-area {
+  cursor: pointer;
+  pointer-events: all;
+}
+
 .custom-edge-path {
   fill: none;
   transition: all 0.2s ease;
+  pointer-events: none; /* Laisse la zone de clic gérer les événements */
 }
 
-.custom-edge-path:hover {
+.edge-click-area:hover + .custom-edge-path {
   stroke-width: 3 !important;
-  cursor: pointer;
+  stroke: #8b5cf6 !important;
 }
 
 .custom-edge-path.selected {
-  filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.5));
+  filter: drop-shadow(0 0 4px rgba(139, 92, 246, 0.5));
 }
 
 .custom-edge-path.edge-state-active {
@@ -237,30 +271,58 @@ export default defineComponent({
 }
 
 .edge-label {
-  font-size: 12px;
+  font-size: 10px;
   fill: #6b7280;
-  font-weight: 500;
+  font-weight: 700;
+  text-transform: uppercase;
+  pointer-events: none;
+  letter-spacing: 0.05em;
+}
+
+/* Bouton de suppression */
+.edge-delete-container {
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: none;
 }
 
-.edge-delete-button {
-  fill: white;
-  stroke: #dc2626;
-  stroke-width: 2;
-  cursor: pointer;
-  transition: all 0.2s;
+.edge-delete-container.is-visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: all;
 }
 
-.edge-delete-button:hover {
-  fill: #fee2e2;
-  stroke-width: 3;
+.edge-delete-button-visual {
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.edge-delete-icon {
-  font-size: 16px;
+.edge-delete-container:hover .edge-delete-button-visual {
+  /* No scale */
+}
+
+.edge-delete-bg {
+  fill: #ef4444;
+}
+
+.edge-delete-container:hover .edge-delete-bg {
   fill: #dc2626;
-  font-weight: bold;
-  cursor: pointer;
-  pointer-events: none;
+}
+
+.edge-delete-cross {
+  fill: none;
+  stroke: white;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.dark .edge-delete-bg {
+  fill: #ef4444;
+}
+
+.dark .edge-delete-container:hover .edge-delete-bg {
+  fill: #f87171;
 }
 </style>

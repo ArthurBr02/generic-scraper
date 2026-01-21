@@ -6,7 +6,7 @@
       :class="['workflow-canvas', { dark: isDarkMode }]"
       :default-viewport="viewport"
       :snap-to-grid="snapToGrid"
-      :snap-grid="[15, 15]"
+      :snap-grid="[20, 20]"
       :min-zoom="0.2"
       :max-zoom="4"
       :default-edge-options="defaultEdgeOptions"
@@ -24,9 +24,9 @@
 
       <!-- Grille de fond -->
       <Background
-        :pattern-color="isDarkMode ? '#2a2a2a' : '#e5e5e5'"
-        :gap="15"
-        variant="dots"
+        :pattern-color="isDarkMode ? '#111827' : '#e5e7eb'"
+        :gap="20"
+        variant="lines"
       />
 
       <!-- Mini carte de navigation -->
@@ -78,7 +78,11 @@
 
       <!-- Template pour les edges personnalisés -->
       <template #edge-custom="edgeProps">
-        <CustomEdge v-bind="edgeProps" @delete-edge="onDeleteEdge" />
+        <CustomEdge 
+          v-bind="edgeProps" 
+          :is-dark-mode="isDarkMode"
+          @delete-edge="onDeleteEdge" 
+        />
       </template>
     </VueFlow>
 
@@ -462,75 +466,80 @@ export default defineComponent({
 }
 
 .workflow-canvas.dark {
-  background-color: #1f2937;
+  background-color: #030712;
 }
 
 /* Nœuds personnalisés */
 .custom-node {
-  min-width: 180px;
-  padding: 12px;
+  min-width: 190px;
+  padding: 0;
   background: white;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   transition: all 0.2s ease;
+  /* Retrait de overflow: hidden pour laisser dépasser les handles */
 }
 
 .custom-node:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border-color: #3b82f6;
+  border-color: #a78bfa;
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.08);
 }
 
 .custom-node.selected {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.1);
 }
 
 .dark .custom-node {
-  background: #374151;
-  border-color: #4b5563;
-  color: #f9fafb;
+  background: #0f172a;
+  border-color: #1e293b;
+  color: #f1f5f9;
 }
 
 .dark .custom-node:hover {
-  border-color: #60a5fa;
-}
-
-.dark .custom-node.selected {
-  border-color: #60a5fa;
-  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+  border-color: #8b5cf6;
 }
 
 .node-header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  padding: 10px 14px;
 }
 
 .node-icon {
-  font-size: 20px;
+  font-size: 16px;
   flex-shrink: 0;
+  opacity: 0.9;
 }
 
 .node-label {
   flex: 1;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  color: #475569;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+.dark .node-label {
+  color: #94a3b8;
+}
+
 .node-delete {
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   border: none;
   background: transparent;
-  color: #9ca3af;
-  font-size: 20px;
+  color: #94a3b8;
+  font-size: 16px;
   cursor: pointer;
   border-radius: 4px;
   transition: all 0.2s;
@@ -539,31 +548,57 @@ export default defineComponent({
 
 .node-delete:hover {
   background: #fee2e2;
-  color: #dc2626;
+  color: #ef4444;
 }
 
 .dark .node-delete:hover {
-  background: #7f1d1d;
-  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.1);
 }
 
 /* Handles (ports de connexion) */
 .node-handle {
-  width: 12px;
-  height: 12px;
-  border: 2px solid #3b82f6;
+  width: 8px;
+  height: 8px;
+  border: 2px solid #8b5cf6;
   background: white;
+  border-radius: 50%;
+  transition: background 0.2s, border-color 0.2s;
+  z-index: 20;
+}
+
+/* Positionnement précis sur les bords */
+.node-handle-input {
+  left: -5px !important; /* Sortie de 5px (moitié du handle + bordure) */
+}
+
+.node-handle-output {
+  right: -5px !important;
+}
+
+/* Zone de détection élargie pour éviter le clignotement au hover */
+.node-handle::after {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  right: -8px;
+  bottom: -8px;
   border-radius: 50%;
 }
 
 .dark .node-handle {
-  background: #374151;
-  border-color: #60a5fa;
+  background: #0f172a;
+  border-color: #8b5cf6;
 }
 
 .node-handle:hover {
-  width: 16px;
-  height: 16px;
+  background: #8b5cf6;
+  border-color: #8b5cf6;
+}
+
+.dark .node-handle:hover {
+  background: #a78bfa;
+  border-color: #a78bfa;
 }
 
 /* Menu contextuel */
