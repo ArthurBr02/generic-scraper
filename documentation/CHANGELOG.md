@@ -5,6 +5,69 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.0.0-sprint4] - 2026-01-21
+
+### 🎨 Phase 3 - Sprint 4 : Bibliothèque de blocs et composants de base
+
+#### Ajouté
+
+**Frontend - Types et Configuration**
+- `types/blocks.ts` - Définition complète des types TypeScript pour les blocs :
+  - `BlockDefinition` : Définition d'un type de bloc
+  - `BlockInstance` : Instance d'un bloc dans le workflow
+  - `BlockConnection` : Connexion entre deux blocs
+  - `PortDefinition` : Définition d'un port (entrée/sortie)
+  - `ConfigField` : Champ de configuration avec validation
+  - Support des catégories : navigation, interaction, extraction, api, control, authentication
+
+- `config/blocks.config.ts` - Configuration de tous les blocs disponibles :
+  - **Navigation** : `navigate`, `wait`
+  - **Interaction** : `click`, `input`, `scroll`
+  - **Extraction** : `extract` (simple et multiple)
+  - **API** : `api` (GET, POST, PUT, DELETE, PATCH)
+  - **Contrôle** : `loop`, `condition`
+  - **Authentification** : `login` (form, basic, token)
+  - Schémas de configuration détaillés pour chaque bloc
+  - Couleurs et icônes par catégorie
+
+**Frontend - Composants Workflow**
+- `components/workflow/InputPort.vue` :
+  - Port d'entrée pour les blocs
+  - Support des types flow et data
+  - États visuels (connecté, hover)
+  - Émission d'événements pour la gestion des connexions
+
+- `components/workflow/OutputPort.vue` :
+  - Port de sortie pour les blocs
+  - Gestion du drag & drop pour créer des connexions
+  - États visuels (connecté, hover, dragging)
+  - Événements dragstart/dragend
+
+- `components/workflow/Block.vue` :
+  - Composant principal de bloc
+  - Header avec icône, titre et bouton de suppression
+  - Affichage des ports d'entrée et de sortie
+  - Aperçu de la configuration
+  - États visuels : sélectionné, en cours, succès, erreur
+  - Indicateur de statut animé
+  - Style adaptatif selon la catégorie
+
+- `components/workflow/BlockLibrary.vue` :
+  - Panneau latéral de bibliothèque de blocs
+  - Organisation par catégories collapsibles
+  - Recherche en temps réel (nom, description, type)
+  - Drag & drop des blocs vers le canvas
+  - Compteur de blocs par catégorie
+  - Interface responsive avec scrollbar personnalisée
+
+#### Technique
+- Support complet du dark mode pour tous les composants
+- Système de couleurs cohérent par catégorie de blocs
+- Aperçu de configuration intelligent selon le type de bloc
+- Validation des champs avec règles personnalisables
+- Champs conditionnels (showIf)
+- Support des types de champs : text, textarea, number, select, checkbox, code, keyvalue, array
+
 ## [2.0.0-sprint3] - 2026-01-21
 
 ### 🎨 Phase 2 - Sprint 3 : Vue liste des tâches et confirmations
