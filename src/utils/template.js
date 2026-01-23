@@ -3,6 +3,10 @@
  * Permet de remplacer les variables {{variable}} dans les configurations
  */
 
+const { log } = require('winston');
+const { getLogger } = require('./logger');
+const logger = getLogger();
+
 /**
  * Get nested property value from object using dot notation
  * @param {Object} obj - Object to search in
@@ -65,6 +69,7 @@ function resolveTemplateString(template, context) {
     
     // Si la valeur n'existe pas, retourner la chaîne vide
     if (value === undefined || value === null) {
+      logger.warn(`⚠️  Template variable not found: {{${trimmedPath}}}`);
       return '';
     }
     

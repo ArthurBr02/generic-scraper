@@ -7,6 +7,7 @@ const textExtractor = require('./text');
 const attributeExtractor = require('./attribute');
 const htmlExtractor = require('./html');
 const listExtractor = require('./list');
+const pageUrlExtractor = require('./pageUrl');
 
 /**
  * Registre des extracteurs disponibles
@@ -15,7 +16,8 @@ const extractors = {
   text: textExtractor,
   attribute: attributeExtractor,
   html: htmlExtractor,
-  list: listExtractor
+  list: listExtractor,
+  pageUrl: pageUrlExtractor
 };
 
 /**

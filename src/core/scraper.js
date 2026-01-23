@@ -106,6 +106,9 @@ class Scraper {
       await this.initialize();
       const results = await this.run();
       
+      // Log pour debug
+      this.logger.info('📦 Workflow results.data keys:', Object.keys(results.data || {}));
+      
       // Export results if output is configured
       if (this.config.output && results.data) {
         await this.exportResults(results.data);

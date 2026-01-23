@@ -1,0 +1,175 @@
+{
+  "name": "mon-scraper",
+  "target": {
+    "url": "https://erasmusintern.org/traineeships?search_api_views_fulltext=developer&field_traineeship_full_location_field_traineeship_location_count=All&f%5B0%5D=field_traineeship_field_studies%253Aparents_all%3A38"
+  },
+  "browser": {
+    "headless": false,
+    "timeout": 30000
+  },
+  "errorHandling": {
+    "retries": 3,
+    "retryDelay": 1000,
+    "screenshotOnError": true
+  },
+  "logging": {
+    "level": "debug",
+    "console": true
+  },
+  "workflows": [
+    {
+      "name": "main-workflow",
+      "steps": [
+        {
+          "type": "navigate",
+          "config": {
+            "url": "{{target.url}}",
+            "waitUntil": "networkidle"
+          }
+        },
+        {
+          "type": "wait",
+          "config": {
+            "time": 3000
+          }
+        },
+        {
+          "type": "click",
+          "config": {
+            "selector": "body > div.fc-consent-root > div.fc-dialog-container > div.fc-dialog.fc-choice-dialog > div.fc-footer-buttons-container > div.fc-footer-buttons > button.fc-button.fc-cta-do-not-consent.fc-secondary-button > p",
+            "waitAfterClick": 2000
+          }
+        },
+        {
+          "type": "scroll",
+          "config": {
+            "direction": "down",
+            "pixels": 500
+          }
+        },
+        {
+          "id": "extract-data",  
+          "type": "extract",
+          "config": {
+            "container": ".view-content > div",
+            "multiple": true,
+            "fields": [
+                {
+                    "name": "url",
+                    "selector": ".inline-header-content > div.field.field-name-title.field-type-ds.field-label-hidden.pull-left > div > div > h3 > a",
+                    "type": "attribute",
+                    "attribute": "href"
+                }
+            ]
+          }
+        },
+        {
+            "type": "pagination",
+            "output": "urls",
+            "config": {
+              "type": "click",
+              "nextSelector": ".next > a",
+              "waitAfterClick": 3000,
+              "waitForSelector": ".view-content > div",
+              "repeatSteps": ["extract-data"]
+            }
+        },
+        {
+          "type": "loop",
+          "output": "erasmusintern_details",
+          "config": {
+            "items": "urls",
+            "itemVar": "item",
+            "steps": [
+              {
+                "type": "navigate",
+                "config": {
+                  "url": "https://erasmusintern.org{{item.url}}",
+                  "waitUntil": "load"
+                }
+              },
+              {
+                "type": "wait",
+                "config": {
+                  "type": "selector",
+                  "selector": "h1"
+                }
+              },
+              {
+                "type": "extract",
+                "output": "details",
+                "config": {
+                  "fields": [
+                    {
+                      "name": "url",
+                      "type": "pageUrl"
+                    },
+                    {
+                      "name": "title",
+                      "selector": ".field-name-title",
+                      "type": "text"
+                    },
+                    {
+                      "name": "company",
+                      "selector": ".field-name-recruiter-name",
+                      "type": "text"
+                    },
+                    {
+                      "name": "location",
+                      "selector": ".field-name-field-traineeship-full-location",
+                      "type": "text"
+                    },
+                    {
+                      "name": "period",
+                      "selector": ".field-name-field-traineeship-period",
+                      "type": "text"
+                    },
+                    {
+                      "name": "post_date",
+                      "selector": ".field-name-post-date",
+                      "type": "text"
+                    },
+                    {
+                      "name": "deadline",
+                      "selector": ".field-name-field-traineeship-apply-deadline",
+                      "type": "text"
+                    },
+                    {
+                      "name": "duration",
+                      "selector": ".field-name-field-traineeship-duration",
+                      "type": "text"
+                    },
+                    {
+                      "name": "description",
+                      "selector": ".field-type-text-with-summary",
+                      "type": "text"
+                    },
+                    {
+                      "name": "compensation",
+                      "selector": ".field-name-field-traineeship-compensation",
+                      "type": "text"
+                    },
+                    {
+                      "name": "experience",
+                      "selector": ".field-name-field-traineeship-year-experienc",
+                      "type": "text"
+                    },
+                    {
+                      "name": "url",
+                      "type": "pageUrl"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "output": {
+    "format": "json",
+    "path": "./output/",
+    "append": true
+  }
+}

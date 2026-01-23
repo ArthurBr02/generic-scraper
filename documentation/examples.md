@@ -278,6 +278,65 @@ name,price,url,inStock
 
 ---
 
+### Capturer l'URL de la page courante
+
+**Cas d'usage :** Récupérer l'URL de la page visitée (utile dans les loops).
+
+```json
+{
+  "name": "page-url-scraper",
+  "workflow": {
+    "steps": [
+      {
+        "type": "navigate",
+        "config": {
+          "url": "https://example.com/article-123"
+        }
+      },
+      {
+        "type": "extract",
+        "config": {
+          "fields": [
+            {
+              "name": "url",
+              "type": "pageUrl"
+            },
+            {
+              "name": "title",
+              "selector": "h1",
+              "type": "text"
+            },
+            {
+              "name": "content",
+              "selector": ".article-content",
+              "type": "text"
+            }
+          ],
+          "saveAs": "article"
+        }
+      }
+    ]
+  },
+  "output": {
+    "format": "json",
+    "path": "./output/article-with-url.json"
+  }
+}
+```
+
+**Résultat :**
+```json
+{
+  "article": {
+    "url": "https://example.com/article-123",
+    "title": "Mon Article",
+    "content": "Contenu de l'article..."
+  }
+}
+```
+
+---
+
 ## 3. Pagination
 
 ### Pagination par clic (bouton "Suivant")
@@ -461,6 +520,184 @@ name,price,url,inStock
   }
 }
 ```
+
+---
+
+### Pagination puis détails (pattern complet)
+
+**Cas d'usage :** Parcourir une liste paginée, puis visiter chaque élément pour extraire les détails complets.
+
+```json
+{
+  "name": "pagination-then-loop-scraper",
+  "target": {
+    "url": "https://jobs.example.com/listings"
+  },
+  "browser": {
+    "headless": false,
+    "timeout": 30000
+  },
+  "workflows": [
+    {
+      "name": "main-workflow",
+      "steps": [
+        {
+          "type": "navigate",
+          "config": {
+            "url": "{{target.url}}",
+            "waitUntil": "networkidle"
+          }
+        },
+        {
+          "name": "Accepter les cookies",
+          "type": "click",
+          "continueOnError": true,
+          "config": {
+            "selector": ".cookie-accept",
+            "waitAfterClick": 1000
+          }
+        },
+        {
+          "id": "extract-urls",
+          "type": "extract",
+          "config": {
+            "container": ".job-listing",
+            "multiple": true,
+            "fields": [
+              {
+                "name": "url",
+                "selector": ".job-link",
+                "type": "attribute",
+                "attribute": "href"
+              }
+            ]
+          }
+        },
+        {
+          "type": "pagination",
+          "output": "jobUrls",
+          "config": {
+            "type": "click",
+            "nextSelector": ".pagination .next",
+            "maxPages": 5,
+            "waitAfterClick": 2000,
+            "waitForSelector": ".job-listing",
+            "repeatSteps": ["extract-urls"]
+          }
+        },
+        {
+          "type": "loop",
+          "output": "jobDetails",
+          "config": {
+            "items": "jobUrls",
+            "itemVar": "job",
+            "steps": [
+              {
+                "type": "navigate",
+                "config": {
+                  "url": "https://jobs.example.com{{job.url}}",
+                  "waitUntil": "load"
+                }
+              },
+              {
+                "type": "wait",
+                "config": {
+                  "type": "selector",
+                  "selector": "h1.job-title"
+                }
+              },
+              {
+                "type": "extract",
+                "output": "details",
+                "config": {
+                  "fields": [
+                    {
+                      "name": "url",
+                      "type": "pageUrl"
+                    },
+                    {
+                      "name": "title",
+                      "selector": "h1.job-title",
+                      "type": "text"
+                    },
+                    {
+                      "name": "company",
+                      "selector": ".company-name",
+                      "type": "text"
+                    },
+                    {
+                      "name": "location",
+                      "selector": ".job-location",
+                      "type": "text"
+                    },
+                    {
+                      "name": "salary",
+                      "selector": ".salary-range",
+                      "type": "text"
+                    },
+                    {
+                      "name": "description",
+                      "selector": ".job-description",
+                      "type": "text"
+                    },
+                    {
+                      "name": "posted_date",
+                      "selector": ".post-date",
+                      "type": "text"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "output": {
+    "format": "json",
+    "path": "./output/jobs-complete.json"
+  }
+}
+```
+
+**Résultat :**
+```json
+{
+  "jobUrls": [
+    { "url": "/job/123" },
+    { "url": "/job/456" },
+    { "url": "/job/789" }
+  ],
+  "jobDetails": [
+    {
+      "url": "https://jobs.example.com/job/123",
+      "title": "Senior Developer",
+      "company": "Tech Corp",
+      "location": "Paris, France",
+      "salary": "60-80k €",
+      "description": "...",
+      "posted_date": "2026-01-15"
+    },
+    {
+      "url": "https://jobs.example.com/job/456",
+      "title": "Frontend Engineer",
+      "company": "Startup Inc",
+      "location": "Lyon, France",
+      "salary": "45-55k €",
+      "description": "...",
+      "posted_date": "2026-01-18"
+    }
+  ]
+}
+```
+
+**Points clés :**
+- La pagination collecte tous les URLs sur plusieurs pages
+- La loop visite ensuite chaque URL individuellement
+- Le type `pageUrl` capture l'URL complète de chaque page visitée
+- L'`output: "details"` dans l'extraction permet de récupérer directement les données
+- Le résultat est un tableau d'objets avec tous les détails
 
 ---
 

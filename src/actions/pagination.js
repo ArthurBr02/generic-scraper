@@ -58,12 +58,85 @@ async function execute(page, config, context) {
       itemsCollected: results.itemsCollected
     });
 
-    return results;
+    // Flatten pagination results for easier consumption
+    // If data contains objects with same key (from repeat steps), merge them
+    const flattenedData = flattenPaginationData(results.data, context);
+    
+    return flattenedData || results;
 
   } catch (error) {
     context.logger.error(`Pagination failed: ${error.message}`);
     throw error;
   }
+}
+
+/**
+ * Flatten pagination data structure
+ * Converts array of objects with same keys into merged arrays
+ * @param {Array} data - Pagination data array
+ * @param {Object} context - Execution context
+ * @returns {Object|Array} Flattened data
+ */
+function flattenPaginationData(data, context) {
+  context.logger.info('📄 Flattening pagination data:', {
+    dataType: Array.isArray(data) ? 'array' : typeof data,
+    length: Array.isArray(data) ? data.length : 'N/A',
+    sample: Array.isArray(data) ? data[0] : data
+  });
+  
+  if (!Array.isArray(data) || data.length === 0) {
+    return data;
+  }
+
+  // Check if all items are arrays (results without output)
+  const allArrays = data.every(item => Array.isArray(item));
+  
+  if (allArrays) {
+    // Flatten array of arrays into single array
+    const flattened = data.flat();
+    context.logger.debug(`Flattened pagination data: ${data.length} pages into ${flattened.length} total items`);
+    return flattened;
+  }
+
+  // Check if all items are objects with the same structure
+  const allObjects = data.every(item => item && typeof item === 'object' && !Array.isArray(item));
+  
+  if (!allObjects) {
+    return data;
+  }
+
+  // Get all unique keys across all objects
+  const allKeys = [...new Set(data.flatMap(obj => Object.keys(obj)))];
+  
+  // If only one key, and all values are arrays, flatten them
+  if (allKeys.length === 1) {
+    const key = allKeys[0];
+    const allArrays = data.every(item => Array.isArray(item[key]));
+    
+    if (allArrays) {
+      // Flatten into single array
+      const flattened = data.flatMap(item => item[key]);
+      context.logger.debug(`Flattened pagination data: ${key} with ${flattened.length} total items`);
+      return flattened;
+    }
+  }
+  
+  // Multiple keys: merge by key
+  const merged = {};
+  for (const key of allKeys) {
+    const values = data.map(item => item[key]).filter(v => v !== undefined);
+    
+    // If all values for this key are arrays, concatenate them
+    if (values.every(v => Array.isArray(v))) {
+      merged[key] = values.flat();
+    } else {
+      // Otherwise, keep as is
+      merged[key] = values.length === 1 ? values[0] : values;
+    }
+  }
+  
+  context.logger.debug(`Merged pagination data by keys:`, Object.keys(merged));
+  return merged;
 }
 
 /**
@@ -339,6 +412,7 @@ async function executeRepeatSteps(page, stepIds, context) {
   }
 
   const results = {};
+  const allResults = [];
 
   for (const stepId of stepIds) {
     const step = workflow.config.steps.find(s => s.id === stepId);
@@ -349,8 +423,13 @@ async function executeRepeatSteps(page, stepIds, context) {
 
     try {
       const result = await workflow.executeStep(step, page);
+      
+      // Collect result with output name if specified
       if (step.output) {
         results[step.output] = result;
+      } else {
+        // Collect result even without output for pagination
+        allResults.push(result);
       }
     } catch (error) {
       context.logger.error(`Failed to execute repeat step ${stepId}: ${error.message}`);
@@ -360,7 +439,18 @@ async function executeRepeatSteps(page, stepIds, context) {
     }
   }
 
-  return Object.keys(results).length > 0 ? results : null;
+  // Return results with outputs if any, otherwise return raw results
+  if (Object.keys(results).length > 0) {
+    return results;
+  } else if (allResults.length === 1) {
+    // Single step without output: return its result directly
+    return allResults[0];
+  } else if (allResults.length > 0) {
+    // Multiple steps without output: return as array
+    return allResults;
+  }
+  
+  return null;
 }
 
 module.exports = {

@@ -70,6 +70,8 @@ async function execute(page, config, context) {
     total: itemsArray.length,
     limited: limitedItems.length
   });
+  
+  context.logger.debug('First 3 items:', limitedItems.slice(0, 3));
 
   const results = [];
 
@@ -77,7 +79,7 @@ async function execute(page, config, context) {
   for (let i = 0; i < limitedItems.length; i++) {
     const item = limitedItems[i];
     
-    context.logger.debug(`Loop iteration ${i + 1}/${limitedItems.length}`);
+    context.logger.info(`🔄 Loop iteration ${i + 1}/${limitedItems.length}`);
 
     try {
       // Créer un contexte pour cette itération avec les variables
@@ -95,7 +97,20 @@ async function execute(page, config, context) {
 
       // Exécuter les steps pour cet item
       const iterationResult = await executeLoopSteps(page, steps, iterationContext);
-      results.push(iterationResult);
+      
+      // Si le résultat est un objet avec une seule clé, extraire la valeur
+      if (iterationResult && typeof iterationResult === 'object' && !Array.isArray(iterationResult)) {
+        const keys = Object.keys(iterationResult);
+        if (keys.length === 1) {
+          // Si une seule sortie, utiliser sa valeur directement
+          results.push(iterationResult[keys[0]]);
+        } else {
+          // Sinon, garder l'objet complet
+          results.push(iterationResult);
+        }
+      } else {
+        results.push(iterationResult);
+      }
 
     } catch (error) {
       context.logger.error(`Loop iteration ${i + 1} failed: ${error.message}`);

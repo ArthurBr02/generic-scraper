@@ -25,6 +25,7 @@ async function execute(page, config, context) {
     throw new Error('Navigate action requires a URL');
   }
 
+  logger.info(`🌐 Navigating to: ${url}`);
   logger.debug('Navigating to URL', { url, waitUntil });
 
   try {

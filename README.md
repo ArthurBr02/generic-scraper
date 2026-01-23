@@ -49,6 +49,7 @@ Outil de scraping générique et configurable, basé sur Playwright.
   - `attribute` - Extraction d'attributs HTML
   - `html` - Extraction de code HTML (inner, outer)
   - `list` - Extraction de listes avec sous-champs
+  - `pageUrl` - Récupération de l'URL de la page courante
 - ✅ Workflows séquentiels :
   - Orchestration des étapes (steps)
   - Contexte partagé entre steps

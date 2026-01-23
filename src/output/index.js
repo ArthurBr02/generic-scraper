@@ -62,6 +62,13 @@ class OutputManager {
       minute: String(now.getMinutes()).padStart(2, '0'),
       second: String(now.getSeconds()).padStart(2, '0')
     };
+    
+    // Log pour debug
+    this.logger.debug('📅 Generating filename:', {
+      now: now.toString(),
+      date: replacements.date,
+      time: replacements.time
+    });
 
     let filename = template;
     for (const [key, value] of Object.entries(replacements)) {

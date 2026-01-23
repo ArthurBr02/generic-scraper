@@ -42,6 +42,11 @@ class Workflow {
         
         // Stocker le résultat si un nom de sortie est spécifié
         if (step.output) {
+          this.logger.info(`💾 Saving step result to workflow.data.${step.output}`, {
+            resultType: Array.isArray(stepResult) ? 'array' : typeof stepResult,
+            length: Array.isArray(stepResult) ? stepResult.length : 'N/A',
+            sample: Array.isArray(stepResult) ? stepResult[0] : stepResult
+          });
           this.data[step.output] = stepResult;
           results[step.output] = stepResult;
         }
@@ -92,8 +97,14 @@ class Workflow {
       // Créer le contexte pour cette step
       const stepContext = this.createStepContext(step);
       
+      // Pour certaines actions (loop, condition), ne pas résoudre les templates
+      // car elles gèrent leur propre contexte avec des variables dynamiques
+      const skipTemplateResolution = ['loop', 'condition'].includes(stepType);
+      
       // Résoudre les templates dans la configuration
-      const resolvedConfig = this.resolveStepConfig(step.config, stepContext);
+      const resolvedConfig = skipTemplateResolution 
+        ? step.config 
+        : this.resolveStepConfig(step.config, stepContext);
       
       // Exécuter l'action
       const result = await executeAction(page, {
