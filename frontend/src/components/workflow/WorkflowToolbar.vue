@@ -187,6 +187,7 @@
 import { defineComponent } from 'vue';
 import { mapState, mapActions } from 'pinia';
 import { useWorkflowStore } from '@/stores/workflow';
+import { useTasksStore } from '@/stores/tasks';
 import { useNotificationStore } from '@/stores/notification';
 import WorkflowConverter from '@/services/WorkflowConverter';
 import type { WorkflowConfig } from '@/services/WorkflowConverter';
@@ -196,7 +197,6 @@ export default defineComponent({
 
   data() {
     return {
-      workflowName: '',
       showMetadataModal: false,
       showValidationModal: false,
       validationErrors: [] as string[],
@@ -208,11 +208,20 @@ export default defineComponent({
   },
 
   computed: {
-    ...mapState(useWorkflowStore, ['nodes', 'edges', 'isDirty'])
+    ...mapState(useWorkflowStore, ['nodes', 'edges', 'isDirty', 'currentTaskId', 'currentTaskName']),
+    
+    workflowName: {
+      get(): string {
+        return this.currentTaskName;
+      },
+      set(value: string): void {
+        this.setCurrentTask(this.currentTaskId, value);
+      }
+    }
   },
 
   methods: {
-    ...mapActions(useWorkflowStore, ['reset', 'loadWorkflow', 'markAsSaved']),
+    ...mapActions(useWorkflowStore, ['reset', 'loadWorkflow', 'markAsSaved', 'setCurrentTask']),
     ...mapActions(useNotificationStore, ['success', 'error']),
 
     newWorkflow(): void {
@@ -222,7 +231,6 @@ export default defineComponent({
       }
 
       this.reset();
-      this.workflowName = '';
       this.success('Nouveau workflow créé');
     },
 
@@ -252,9 +260,9 @@ export default defineComponent({
         // Convertir en graphe
         const { nodes, edges } = WorkflowConverter.fromConfig(config);
         
-        // Charger dans le store
+        // Charger dans le store (nouveau workflow non sauvegardé)
         this.loadWorkflow({ nodes, edges });
-        this.workflowName = config.name;
+        this.setCurrentTask(null, config.name);
         
         this.success(`Workflow "${config.name}" importé avec succès`);
 
@@ -327,7 +335,6 @@ export default defineComponent({
     },
 
     async saveWorkflow(): Promise<void> {
-      // TODO: Implémenter la sauvegarde via API backend
       try {
         const config = WorkflowConverter.toConfig(
           this.nodes,
@@ -335,11 +342,29 @@ export default defineComponent({
           { name: this.workflowName || 'workflow', description: '' }
         );
 
-        // Ici, on pourrait envoyer au backend
-        // await api.saveWorkflow(config);
-
+        const tasksStore = useTasksStore();
+        
+        // Créer ou mettre à jour la tâche
+        if (this.currentTaskId) {
+          // Mise à jour d'une tâche existante
+          await tasksStore.updateTask(this.currentTaskId, {
+            name: this.workflowName || 'workflow',
+            description: '',
+            config
+          });
+          this.success('Workflow sauvegardé');
+        } else {
+          // Création d'une nouvelle tâche
+          const newTask = await tasksStore.createTask({
+            name: this.workflowName || 'workflow',
+            description: '',
+            config
+          });
+          this.setCurrentTask(newTask.id, newTask.name);
+          this.success(`Workflow "${newTask.name}" créé et sauvegardé`);
+        }
+        
         this.markAsSaved();
-        this.success('Workflow sauvegardé');
       } catch (error) {
         this.error(`Erreur lors de la sauvegarde: ${(error as Error).message}`);
       }

@@ -34,13 +34,16 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { mapState } from 'pinia';
+import { mapState, mapActions } from 'pinia';
 import MainVueFlowLayout from '@/components/layout/MainVueFlowLayout.vue';
 import WorkflowCanvas from '@/components/WorkflowCanvas.vue';
 import WorkflowToolbar from '@/components/workflow/WorkflowToolbar.vue';
 import BlockConfigPanel from '@/components/workflow/BlockConfigPanel.vue';
 import BlockLibrary from '@/components/workflow/BlockLibrary.vue';
 import { useWorkflowStore } from '@/stores/workflow';
+import { useTasksStore } from '@/stores/tasks';
+import { useNotificationStore } from '@/stores/notification';
+import WorkflowConverter from '@/services/WorkflowConverter';
 
 export default defineComponent({
   name: 'TaskEditorView',
@@ -65,12 +68,29 @@ export default defineComponent({
     }
   },
 
-  mounted() {
+  methods: {
+    ...mapActions(useWorkflowStore, ['loadWorkflow', 'setCurrentTask']),
+    ...mapActions(useNotificationStore, ['error'])
+  },
+
+  async mounted() {
     // Charge le workflow existant si en mode édition
     if (this.isEditMode) {
       const taskId = this.$route.params.id as string;
-      // Charger le workflow depuis l'API sera implémenté plus tard
-      console.log('Chargement du workflow:', taskId);
+      try {
+        const tasksStore = useTasksStore();
+        const task = await tasksStore.fetchTask(taskId);
+        
+        if (task && task.config) {
+          // Convertir la config en nodes et edges
+          const { nodes, edges } = WorkflowConverter.fromConfig(task.config);
+          this.loadWorkflow({ nodes, edges });
+          this.setCurrentTask(task.id, task.name);
+        }
+      } catch (err) {
+        this.error(`Erreur lors du chargement du workflow: ${(err as Error).message}`);
+        console.error('Erreur lors du chargement du workflow:', err);
+      }
     }
   }
 });

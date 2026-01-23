@@ -127,39 +127,62 @@ export const blockDefinitions: BlockDefinition[] = [
           key: 'type',
           type: 'select',
           label: 'Type d\'attente',
-          default: 'time',
+          default: 'timeout',
           options: [
-            { value: 'time', label: 'Temps fixe' },
-            { value: 'selector', label: 'Sélecteur CSS' },
-            { value: 'function', label: 'Fonction personnalisée' }
+            { value: 'timeout', label: 'Temps fixe' },
+            { value: 'selector', label: 'Sélecteur CSS visible' },
+            { value: 'navigation', label: 'Navigation terminée' },
+            { value: 'networkidle', label: 'Réseau inactif' },
+            { value: 'function', label: 'Fonction personnalisée' },
+            { value: 'url', label: 'URL correspond au pattern' }
           ]
         },
         {
-          key: 'duration',
+          key: 'value',
           type: 'number',
           label: 'Durée (ms)',
           default: 1000,
-          showIf: (config) => config.type === 'time'
+          required: true,
+          showIf: (config) => config.type === 'timeout'
         },
         {
           key: 'selector',
           type: 'text',
-          label: 'Sélecteur',
-          placeholder: '.my-element',
+          label: 'Sélecteur CSS',
+          placeholder: '#element, .class',
+          required: true,
           showIf: (config) => config.type === 'selector'
+        },
+        {
+          key: 'function',
+          type: 'textarea',
+          label: 'Fonction JavaScript',
+          placeholder: '() => document.readyState === "complete"',
+          required: true,
+          showIf: (config) => config.type === 'function'
+        },
+        {
+          key: 'pattern',
+          type: 'text',
+          label: 'Pattern d\'URL',
+          placeholder: '/dashboard, **/products/**',
+          required: true,
+          showIf: (config) => config.type === 'url'
         },
         {
           key: 'timeout',
           type: 'number',
-          label: 'Timeout (ms)',
-          default: 5000
+          label: 'Timeout maximum (ms)',
+          default: 30000,
+          description: 'Timeout pour les attentes conditionnelles',
+          showIf: (config) => config.type !== 'timeout'
         }
       ]
     },
     defaultConfig: {
-      type: 'time',
-      duration: 1000,
-      timeout: 5000
+      type: 'timeout',
+      value: 1000,
+      timeout: 30000
     }
   },
 
@@ -343,40 +366,178 @@ export const blockDefinitions: BlockDefinition[] = [
           key: 'type',
           type: 'select',
           label: 'Type de défilement',
-          default: 'pixels',
+          default: 'page',
           options: [
-            { value: 'pixels', label: 'Pixels' },
+            { value: 'bottom', label: 'Bas de page' },
+            { value: 'top', label: 'Haut de page' },
+            { value: 'page', label: 'Position (pixels)' },
             { value: 'element', label: 'Vers élément' },
-            { value: 'bottom', label: 'Jusqu\'en bas' }
+            { value: 'into-view', label: 'Élément visible' }
           ]
         },
         {
           key: 'x',
           type: 'number',
-          label: 'Défilement X (px)',
+          label: 'Position X (px)',
           default: 0,
-          showIf: (config) => config.type === 'pixels'
+          showIf: (config) => config.type === 'page'
         },
         {
           key: 'y',
           type: 'number',
-          label: 'Défilement Y (px)',
+          label: 'Position Y (px)',
           default: 500,
-          showIf: (config) => config.type === 'pixels'
+          showIf: (config) => config.type === 'page'
         },
         {
           key: 'selector',
           type: 'text',
           label: 'Sélecteur',
           placeholder: '#target-element',
-          showIf: (config) => config.type === 'element'
+          required: true,
+          showIf: (config) => config.type === 'element' || config.type === 'into-view'
+        },
+        {
+          key: 'smooth',
+          type: 'checkbox',
+          label: 'Défilement fluide',
+          default: false,
+          description: 'Animation de scroll'
+        },
+        {
+          key: 'delay',
+          type: 'number',
+          label: 'Délai après scroll (ms)',
+          default: 500,
+          description: 'Attente après le défilement'
         }
       ]
     },
     defaultConfig: {
-      type: 'pixels',
+      type: 'page',
       x: 0,
-      y: 500
+      y: 500,
+      smooth: false,
+      delay: 500
+    }
+  },
+
+  // ========== PAGINATION ==========
+  {
+    id: 'pagination',
+    type: 'pagination',
+    category: 'control',
+    name: 'Pagination',
+    description: 'Gère la pagination automatique',
+    icon: categoryIcons.control,
+    color: categoryColors.control,
+    inputs: [
+      {
+        id: 'in',
+        name: 'Entrée',
+        type: 'flow',
+        required: false,
+        multiple: false
+      }
+    ],
+    outputs: [
+      {
+        id: 'out',
+        name: 'Sortie',
+        type: 'flow',
+        required: false,
+        multiple: true
+      }
+    ],
+    configSchema: {
+      fields: [
+        {
+          key: 'type',
+          type: 'select',
+          label: 'Type de pagination',
+          default: 'click',
+          options: [
+            { value: 'click', label: 'Par clic (bouton suivant)' },
+            { value: 'url', label: 'Par URL (pattern)' },
+            { value: 'scroll', label: 'Par scroll infini' }
+          ]
+        },
+        {
+          key: 'nextSelector',
+          type: 'text',
+          label: 'Sélecteur bouton suivant',
+          placeholder: '.next-button, .pagination .next',
+          required: true,
+          showIf: (config) => config.type === 'click'
+        },
+        {
+          key: 'waitAfterClick',
+          type: 'number',
+          label: 'Attente après clic (ms)',
+          default: 2000,
+          showIf: (config) => config.type === 'click'
+        },
+        {
+          key: 'urlPattern',
+          type: 'text',
+          label: 'Pattern d\'URL',
+          placeholder: 'https://example.com/page/{page}',
+          required: true,
+          showIf: (config) => config.type === 'url'
+        },
+        {
+          key: 'startPage',
+          type: 'number',
+          label: 'Page de départ',
+          default: 1,
+          showIf: (config) => config.type === 'url'
+        },
+        {
+          key: 'scrollDelay',
+          type: 'number',
+          label: 'Délai entre scrolls (ms)',
+          default: 1000,
+          showIf: (config) => config.type === 'scroll'
+        },
+        {
+          key: 'maxScrolls',
+          type: 'number',
+          label: 'Nombre max de scrolls',
+          default: 10,
+          showIf: (config) => config.type === 'scroll'
+        },
+        {
+          key: 'endSelector',
+          type: 'text',
+          label: 'Sélecteur de fin',
+          placeholder: '.no-more-items',
+          showIf: (config) => config.type === 'scroll'
+        },
+        {
+          key: 'maxPages',
+          type: 'number',
+          label: 'Nombre maximum de pages',
+          default: 10,
+          validation: { min: 1, max: 1000 }
+        },
+        {
+          key: 'maxItems',
+          type: 'number',
+          label: 'Nombre maximum d\'éléments',
+          placeholder: 'Laisser vide pour illimité'
+        },
+        {
+          key: 'repeatSteps',
+          type: 'text',
+          label: 'IDs des étapes à répéter',
+          placeholder: 'step-1,step-2',
+          description: 'Liste des IDs séparés par des virgules'
+        }
+      ]
+    },
+    defaultConfig: {
+      type: 'click',
+      maxPages: 10
     }
   },
 
@@ -418,41 +579,138 @@ export const blockDefinitions: BlockDefinition[] = [
     configSchema: {
       fields: [
         {
+          key: 'selector',
+          type: 'text',
+          label: 'Sélecteur CSS',
+          placeholder: '.product, #article',
+          description: 'Sélecteur CSS de l\'élément à extraire'
+        },
+        {
           key: 'multiple',
           type: 'checkbox',
           label: 'Extraction multiple',
           default: false,
-          description: 'Extrait plusieurs éléments'
-        },
-        {
-          key: 'container',
-          type: 'text',
-          label: 'Conteneur',
-          placeholder: '.article',
-          description: 'Sélecteur du conteneur'
-        },
-        {
-          key: 'fields',
-          type: 'array',
-          label: 'Champs à extraire',
-          required: true,
-          description: 'Liste des champs à extraire'
+          description: 'Extrait une liste d\'éléments'
         },
         {
           key: 'limit',
           type: 'number',
-          label: 'Limite',
+          label: 'Limite d\'éléments',
           default: 0,
-          description: '0 = pas de limite',
+          placeholder: '0 = pas de limite',
           showIf: (config) => config.multiple
+        },
+        {
+          key: 'fields',
+          type: 'fieldList',
+          label: 'Champs à extraire',
+          required: true,
+          description: 'Configuration des champs de données',
+          itemSchema: [
+            {
+              key: 'name',
+              type: 'text',
+              label: 'Nom du champ',
+              required: true,
+              placeholder: 'title, price, url...'
+            },
+            {
+              key: 'selector',
+              type: 'text',
+              label: 'Sélecteur',
+              required: true,
+              placeholder: 'h1, .price, a',
+              description: 'Sélecteur CSS relatif au conteneur'
+            },
+            {
+              key: 'type',
+              type: 'select',
+              label: 'Type d\'extraction',
+              required: true,
+              default: 'text',
+              options: [
+                { value: 'text', label: 'Texte' },
+                { value: 'attribute', label: 'Attribut HTML' },
+                { value: 'html', label: 'Code HTML' },
+                { value: 'list', label: 'Liste (sous-éléments)' },
+                { value: 'pageUrl', label: 'URL de la page' }
+              ]
+            },
+            {
+              key: 'attribute',
+              type: 'text',
+              label: 'Attribut',
+              required: true,
+              placeholder: 'href, src, data-id...',
+              showIf: { key: 'type', value: 'attribute' }
+            },
+            {
+              key: 'method',
+              type: 'select',
+              label: 'Méthode',
+              default: 'innerText',
+              options: [
+                { value: 'innerText', label: 'innerText (texte visible)' },
+                { value: 'textContent', label: 'textContent (texte brut)' }
+              ],
+              showIf: { key: 'type', value: 'text' }
+            },
+            {
+              key: 'htmlMethod',
+              type: 'select',
+              label: 'Méthode HTML',
+              default: 'innerHTML',
+              options: [
+                { value: 'innerHTML', label: 'innerHTML (contenu interne)' },
+                { value: 'outerHTML', label: 'outerHTML (élément complet)' }
+              ],
+              showIf: { key: 'type', value: 'html' }
+            },
+            {
+              key: 'trim',
+              type: 'checkbox',
+              label: 'Supprimer les espaces',
+              default: true
+            },
+            {
+              key: 'regex',
+              type: 'text',
+              label: 'Expression régulière',
+              placeholder: '\\d+',
+              description: 'Extraction d\'une partie du texte'
+            },
+            {
+              key: 'default',
+              type: 'text',
+              label: 'Valeur par défaut',
+              placeholder: 'N/A',
+              description: 'Valeur si l\'élément n\'existe pas'
+            }
+          ]
+        },
+        {
+          key: 'saveAs',
+          type: 'text',
+          label: 'Sauvegarder comme',
+          placeholder: 'products, article, data',
+          description: 'Nom de la variable pour réutiliser les données'
+        },
+        {
+          key: 'output',
+          type: 'text',
+          label: 'Output',
+          placeholder: 'details, results',
+          description: 'Nom de sortie pour récupérer directement les données'
         }
       ]
     },
     defaultConfig: {
+      selector: '',
       multiple: false,
-      container: '',
       fields: [],
-      limit: 0
+      limit: 0,
+      saveAs: '',
+      output: ''
     }
   },
 
@@ -732,6 +990,156 @@ export const blockDefinitions: BlockDefinition[] = [
       type: 'form',
       username: '',
       password: ''
+    }
+  },
+
+  // ========== FORMULAIRES ==========
+  {
+    id: 'form',
+    type: 'form',
+    category: 'interaction',
+    name: 'Formulaire',
+    description: 'Remplit un formulaire complet',
+    icon: categoryIcons.interaction,
+    color: categoryColors.interaction,
+    inputs: [
+      {
+        id: 'in',
+        name: 'Entrée',
+        type: 'flow',
+        required: false,
+        multiple: false
+      }
+    ],
+    outputs: [
+      {
+        id: 'out',
+        name: 'Sortie',
+        type: 'flow',
+        required: false,
+        multiple: true
+      }
+    ],
+    configSchema: {
+      fields: [
+        {
+          key: 'formSelector',
+          type: 'text',
+          label: 'Sélecteur du formulaire',
+          placeholder: 'form, #contact-form',
+          description: 'Sélecteur CSS du formulaire (optionnel)'
+        },
+        {
+          key: 'fields',
+          type: 'object',
+          label: 'Champs du formulaire',
+          required: true,
+          description: 'Map nom du champ => valeur',
+          properties: {
+            key: { type: 'text', label: 'Nom du champ', placeholder: 'email, phone' },
+            value: { type: 'text', label: 'Valeur', placeholder: 'user@example.com' }
+          }
+        },
+        {
+          key: 'submit',
+          type: 'checkbox',
+          label: 'Soumettre le formulaire',
+          default: true,
+          description: 'Soumettre après remplissage'
+        },
+        {
+          key: 'submitSelector',
+          type: 'text',
+          label: 'Sélecteur bouton submit',
+          placeholder: 'button[type="submit"]',
+          showIf: (config) => config.submit
+        },
+        {
+          key: 'waitAfterSubmit',
+          type: 'number',
+          label: 'Attente après submit (ms)',
+          default: 2000,
+          showIf: (config) => config.submit
+        }
+      ]
+    },
+    defaultConfig: {
+      formSelector: '',
+      fields: {},
+      submit: true,
+      submitSelector: 'button[type="submit"]',
+      waitAfterSubmit: 2000
+    }
+  },
+
+  // ========== WORKFLOW ==========
+  {
+    id: 'subWorkflow',
+    type: 'subWorkflow',
+    category: 'control',
+    name: 'Sous-workflow',
+    description: 'Appelle un sous-workflow',
+    icon: categoryIcons.control,
+    color: categoryColors.control,
+    inputs: [
+      {
+        id: 'in',
+        name: 'Entrée',
+        type: 'flow',
+        required: false,
+        multiple: false
+      }
+    ],
+    outputs: [
+      {
+        id: 'out',
+        name: 'Sortie',
+        type: 'flow',
+        required: false,
+        multiple: true
+      },
+      {
+        id: 'data',
+        name: 'Données',
+        type: 'data',
+        dataType: 'any',
+        required: false,
+        multiple: false
+      }
+    ],
+    configSchema: {
+      fields: [
+        {
+          key: 'workflowName',
+          type: 'text',
+          label: 'Nom du workflow',
+          required: true,
+          placeholder: 'extractProductDetails',
+          description: 'Nom du sous-workflow à exécuter'
+        },
+        {
+          key: 'params',
+          type: 'object',
+          label: 'Paramètres',
+          description: 'Paramètres à passer au sous-workflow',
+          properties: {
+            key: { type: 'text', label: 'Nom', placeholder: 'productUrl' },
+            value: { type: 'text', label: 'Valeur', placeholder: '{{item.url}}' }
+          }
+        },
+        {
+          key: 'saveAs',
+          type: 'text',
+          label: 'Sauvegarder comme',
+          placeholder: 'productDetails',
+          description: 'Nom de variable pour le résultat'
+        }
+      ]
+    },
+    defaultConfig: {
+      workflowName: '',
+      params: {},
+      saveAs: ''
     }
   }
 ];

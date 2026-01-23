@@ -110,9 +110,22 @@ export class WorkflowConverter {
    * @param config - Configuration JSON du workflow
    * @returns Nœuds et connexions VueFlow
    */
-  static fromConfig(config: WorkflowConfig): { nodes: Node[]; edges: Edge[] } {
+  static fromConfig(config: WorkflowConfig | any): { nodes: Node[]; edges: Edge[] } {
     const nodes: Node[] = [];
     const edges: Edge[] = [];
+
+    // Support de l'ancien format v1 (avec workflows[])
+    let steps: WorkflowStep[] = [];
+    if (config.steps) {
+      // Nouveau format v2
+      steps = config.steps;
+    } else if (config.workflows && config.workflows.length > 0) {
+      // Ancien format v1 - prendre le premier workflow
+      steps = config.workflows[0].steps || [];
+    } else {
+      console.warn('Configuration sans steps ou workflows trouvée', config);
+      return { nodes, edges };
+    }
 
     // Calculer la position automatique (layout en grille)
     const HORIZONTAL_SPACING = 250;
@@ -123,20 +136,24 @@ export class WorkflowConverter {
     let currentRow = 0;
     let currentCol = 0;
 
-    config.steps.forEach((step, index) => {
+    steps.forEach((step, index) => {
+      // Générer un ID unique si manquant
+      const nodeId = step.id || `step-${index}`;
+      
       // Créer le nœud
       const node: Node = {
-        id: step.id,
-        type: step.type,
+        id: nodeId,
+        type: 'custom', // Utiliser 'custom' pour tous les nœuds
         position: {
           x: currentX + currentCol * HORIZONTAL_SPACING,
           y: currentY + currentRow * VERTICAL_SPACING
         },
         data: {
-          label: step.name || step.id,
+          label: step.name || step.id || `${step.type} - ${index}`,
           name: step.name,
           config: step.config,
-          output: step.output
+          output: step.output,
+          type: step.type // Le vrai type de l'action est dans data.type
         }
       };
 
@@ -151,11 +168,12 @@ export class WorkflowConverter {
 
       // Créer les connexions
       if (step.next) {
+        // Format v2 avec propriété 'next'
         if (typeof step.next === 'string') {
           // Une seule connexion
           edges.push({
-            id: `${step.id}-${step.next}`,
-            source: step.id,
+            id: `${nodeId}-${step.next}`,
+            source: nodeId,
             target: step.next,
             type: 'smoothstep'
           });
@@ -163,21 +181,33 @@ export class WorkflowConverter {
           // Plusieurs connexions
           step.next.forEach((nextId) => {
             edges.push({
-              id: `${step.id}-${nextId}`,
-              source: step.id,
+              id: `${nodeId}-${nextId}`,
+              source: nodeId,
               target: nextId,
               type: 'smoothstep'
             });
           });
         }
+      } else if (index < steps.length - 1) {
+        // Format v1 : connexion automatique au step suivant
+        const nextStep = steps[index + 1];
+        if (nextStep) {
+          const nextNodeId = nextStep.id || `step-${index + 1}`;
+          edges.push({
+            id: `${nodeId}-${nextNodeId}`,
+            source: nodeId,
+            target: nextNodeId,
+            type: 'smoothstep'
+          });
+        }
       }
 
-      // Gérer les conditions
+      // Gérer les conditions (format v2)
       if (step.condition) {
         // Connexion "if"
         edges.push({
-          id: `${step.id}-${step.condition.then}-true`,
-          source: step.id,
+          id: `${nodeId}-${step.condition.then}-true`,
+          source: nodeId,
           target: step.condition.then,
           type: 'smoothstep',
           data: { condition: 'true' },
@@ -186,8 +216,8 @@ export class WorkflowConverter {
 
         // Connexion "else"
         edges.push({
-          id: `${step.id}-${step.condition.else}-false`,
-          source: step.id,
+          id: `${nodeId}-${step.condition.else}-false`,
+          source: nodeId,
           target: step.condition.else,
           type: 'smoothstep',
           data: { condition: 'false' },

@@ -1,97 +1,89 @@
 {
+  "$schema": "../../src/schemas/workflow.schema.json",
   "name": "mon-scraper",
-  "target": {
-    "url": "https://europass.europa.eu/fr/find-jobs?keyword=internship+developer&location=&order=relevance&op=Trouver&form_build_id=form-VDPsJfalDa3mmaV1oqr9JsKFHkgdBxgFt4wENaR55C4&form_id=jobs_search"
-  },
-  "browser": {
-    "headless": false,
-    "timeout": 30000
-  },
-  "errorHandling": {
-    "retries": 3,
-    "retryDelay": 1000,
-    "screenshotOnError": true
-  },
-  "logging": {
-    "level": "debug",
-    "console": true
-  },
-  "workflows": [
+  "description": "",
+  "version": "1.0.0",
+  "steps": [
     {
-      "name": "main-workflow",
-      "steps": [
-        {
-          "type": "navigate",
-          "config": {
-            "url": "{{target.url}}",
-            "waitUntil": "networkidle"
-          }
-        },
-        {
-          "type": "wait",
-          "config": {
-            "time": 3000
-          }
-        },
-        {
-          "type": "scroll",
-          "config": {
-            "direction": "down",
-            "pixels": 500
-          }
-        },
-        {
-          "id": "extract-data",  
-          "type": "extract",
-          "config": {
-            "container": ".views-element-container > .row",
-            "multiple": true,
-            "fields": [
-                {
-                    "name": "title",
-                    "selector": ".jobs--title",
-                    "type": "text"
-                },
-                {
-                    "name": "company",
-                    "selector": ".jobs--subtitle",
-                    "type": "text"
-                },
-                {
-                    "name": "location",
-                    "selector": ".field-item",
-                    "type": "text"
-                },
-                {
-                    "name": "description",
-                    "selector": ".field-item__description",
-                    "type": "text"
-                },
-                {
-                    "name": "url",
-                    "selector": ".boxButtonslist a:nth-child(2)",
-                    "type": "attribute",
-                    "attribute": "href"
-                }
-            ]
+      "id": "step-0",
+      "name": "navigate - 0",
+      "type": "navigate",
+      "config": {
+        "url": "{{target.url}}",
+        "waitUntil": "networkidle"
+      },
+      "next": "step-1"
+    },
+    {
+      "id": "step-1",
+      "name": "wait - 1",
+      "type": "wait",
+      "config": {
+        "time": 3000
+      },
+      "next": "step-2"
+    },
+    {
+      "id": "step-2",
+      "name": "scroll - 2",
+      "type": "scroll",
+      "config": {
+        "direction": "down",
+        "pixels": 500
+      },
+      "next": "extract-data"
+    },
+    {
+      "id": "extract-data",
+      "name": "extract-data",
+      "type": "extract",
+      "config": {
+        "container": ".views-element-container > .row",
+        "multiple": true,
+        "fields": [
+          {
+            "name": "title",
+            "selector": ".jobs--title",
+            "type": "text"
           },
-          "output": "europass"
-        },
-        {
-            "type": "pagination",
-            "config": {
-              "type": "click",
-              "nextSelector": ".ecl-pagination__item--next a",
-              "waitAfterClick": 3000,
-              "repeatSteps": ["extract-data"]
-            }
-        }
-      ]
+          {
+            "name": "company",
+            "selector": ".jobs--subtitle",
+            "type": "text"
+          },
+          {
+            "name": "location",
+            "selector": ".field-item",
+            "type": "text"
+          },
+          {
+            "name": "description",
+            "selector": ".field-item__description",
+            "type": "text"
+          },
+          {
+            "name": "url",
+            "selector": ".boxButtonslist a:nth-child(2)",
+            "type": "attribute",
+            "attribute": "href"
+          }
+        ]
+      },
+      "output": "europass",
+      "next": "step-4"
+    },
+    {
+      "id": "step-4",
+      "name": "pagination - 4",
+      "type": "pagination",
+      "config": {
+        "type": "click",
+        "nextSelector": ".ecl-pagination__item--next a",
+        "waitAfterClick": 3000,
+        "repeatSteps": [
+          "extract-data"
+        ]
+      }
     }
-  ],
-  "output": {
-    "format": "json",
-    "path": "./output/",
-    "append": true
-  }
+  ]
 }

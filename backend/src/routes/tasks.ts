@@ -83,10 +83,13 @@ router.put('/:id', async (req: Request, res: Response) => {
         const { id } = req.params;
         const { name, description, config } = req.body;
 
+        console.log('PUT /api/tasks/:id received:', { id, name, description, config: config ? 'present' : 'missing' });
+
         // Validate config if provided
         if (config) {
             const validation = configService.validateConfig(config);
             if (!validation.valid) {
+                console.log('Config validation failed:', validation.errors);
                 return res.status(400).json({
                     error: 'Invalid config',
                     errors: validation.errors

@@ -56,42 +56,40 @@
             ]"
             @contextmenu.prevent="showNodeContextMenu($event, id)"
           >
-            <div class="flex items-center">
-              <div class="node-content">
-                <div class="node-icon" :style="{ backgroundColor: getBlockColor(data.type) }">
-                  <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="getBlockIcon(data.type)" />
-                  </svg>
-                </div>
-                <div class="node-info">
-                  <div class="node-type">{{ data.type }}</div>
-                  <div v-if="data.description" class="node-description">{{ data.description }}</div>
-                </div>
-                <button
-                  class="node-delete"
-                  @click.stop="deleteNode(id)"
-                  title="Supprimer"
-                >
-                  ×
-                </button>
+            <div class="node-content">
+              <div class="node-icon" :style="{ backgroundColor: getBlockColor(data.type) }">
+                <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="getBlockIcon(data.type)" />
+                </svg>
               </div>
-
-              <!-- Ports d'entrée -->
-              <Handle
-                v-if="data.hasInput !== false"
-                type="target"
-                :position="Position.Left"
-                class="node-handle node-handle-input"
-              />
-
-              <!-- Ports de sortie -->
-              <Handle
-                v-if="data.hasOutput !== false"
-                type="source"
-                :position="Position.Right"
-                class="node-handle node-handle-output"
-              />
+              <div class="node-info">
+                <div class="node-type">{{ data.type }}</div>
+                <div v-if="data.description" class="node-description">{{ data.description }}</div>
+              </div>
+              <button
+                class="node-delete"
+                @click.stop="deleteNode(id)"
+                title="Supprimer"
+              >
+                ×
+              </button>
             </div>
+
+            <!-- Ports d'entrée -->
+            <Handle
+              v-if="data.hasInput !== false"
+              type="target"
+              :position="Position.Left"
+              class="node-handle node-handle-input"
+            />
+
+            <!-- Ports de sortie -->
+            <Handle
+              v-if="data.hasOutput !== false"
+              type="source"
+              :position="Position.Right"
+              class="node-handle node-handle-output"
+            />
           </div>
         </div>
       </template>
@@ -517,7 +515,6 @@ export default defineComponent({
 
 /* Nœuds personnalisés */
 .custom-node-wrapper {
-  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -529,7 +526,7 @@ export default defineComponent({
 
 /* Custom Block Node */
 .custom-node {
-  @apply flex flex-col min-w-[200px] max-w-[280px] bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-150;
+  @apply relative flex flex-col min-w-[200px] max-w-[280px] bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-150;
 }
 
 .custom-node:hover {

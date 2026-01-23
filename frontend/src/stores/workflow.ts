@@ -14,6 +14,8 @@ export interface WorkflowState {
   selectedNodes: string[];
   viewport: Viewport;
   isDirty: boolean;
+  currentTaskId: string | null;
+  currentTaskName: string;
 }
 
 // Configuration pour la validation des connexions
@@ -33,7 +35,9 @@ export const useWorkflowStore = defineStore('workflow', {
       y: 0,
       zoom: 1
     },
-    isDirty: false
+    isDirty: false,
+    currentTaskId: null,
+    currentTaskName: 'Workflow sans nom'
   }),
 
   getters: {
@@ -190,13 +194,33 @@ export const useWorkflowStore = defineStore('workflow', {
      * Met à jour la configuration d'un nœud
      */
     updateNodeConfig(payload: { nodeId: string; config: Record<string, any> }): void {
-      const node = this.nodes.find((n) => n.id === payload.nodeId);
-      if (node) {
-        node.data = {
-          ...node.data,
-          config: payload.config
+      console.log('updateNodeConfig called:', payload.nodeId, payload.config);
+      const nodeIndex = this.nodes.findIndex((n) => n.id === payload.nodeId);
+      
+      if (nodeIndex !== -1) {
+        const oldNode = this.nodes[nodeIndex];
+        console.log('Old node config:', oldNode.data?.config);
+        
+        // Créer un nouveau nœud pour forcer la réactivité
+        const updatedNode = {
+          ...this.nodes[nodeIndex],
+          data: {
+            ...this.nodes[nodeIndex].data,
+            config: payload.config
+          }
         };
+        
+        // Créer un nouveau tableau pour forcer VueFlow à détecter le changement
+        this.nodes = [
+          ...this.nodes.slice(0, nodeIndex),
+          updatedNode,
+          ...this.nodes.slice(nodeIndex + 1)
+        ];
+        
+        console.log('New node config:', updatedNode.data.config);
         this.isDirty = true;
+      } else {
+        console.error('Node not found for config update:', payload.nodeId);
       }
     },
 
@@ -216,6 +240,8 @@ export const useWorkflowStore = defineStore('workflow', {
       this.selectedNodes = [];
       this.viewport = { x: 0, y: 0, zoom: 1 };
       this.isDirty = false;
+      this.currentTaskId = null;
+      this.currentTaskName = 'Workflow sans nom';
     },
 
     /**
@@ -233,6 +259,16 @@ export const useWorkflowStore = defineStore('workflow', {
      */
     markAsSaved(): void {
       this.isDirty = false;
+    },
+
+    /**
+     * Définit la tâche courante
+     */
+    setCurrentTask(taskId: string | null, taskName?: string): void {
+      this.currentTaskId = taskId;
+      if (taskName !== undefined) {
+        this.currentTaskName = taskName;
+      }
     },
 
     /**

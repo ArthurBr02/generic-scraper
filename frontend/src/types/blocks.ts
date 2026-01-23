@@ -52,7 +52,8 @@ export type FieldType =
   | 'checkbox'
   | 'code'
   | 'keyvalue'
-  | 'array';
+  | 'array'
+  | 'fieldList';  // Liste de champs dynamiques avec sous-schéma
 
 /**
  * Règle de validation
@@ -88,7 +89,8 @@ export interface ConfigField {
   options?: SelectOption[];
   validation?: ValidationRule;
   dependsOn?: string;  // Champ dont dépend ce champ
-  showIf?: (config: any) => boolean;  // Condition d'affichage
+  showIf?: { key: string; value: any } | ((config: any) => boolean);  // Condition d'affichage
+  itemSchema?: ConfigField[];  // Pour fieldList: schéma des éléments de la liste
 }
 
 /**

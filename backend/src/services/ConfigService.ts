@@ -256,13 +256,20 @@ class ConfigService {
     validateConfig(config: any): { valid: boolean; errors: string[] } {
         const errors: string[] = [];
 
-        // Basic validation
-        if (!config.url && !config.workflow) {
-            errors.push('Config must have either "url" or "workflow" property');
+        // Support both v1 (workflow/url) and v2 (steps) formats
+        const hasV1Format = config.url || config.workflow;
+        const hasV2Format = config.steps;
+
+        if (!hasV1Format && !hasV2Format) {
+            errors.push('Config must have either "url", "workflow" (v1) or "steps" (v2) property');
         }
 
         if (config.workflow && !Array.isArray(config.workflow)) {
             errors.push('Workflow must be an array');
+        }
+
+        if (config.steps && !Array.isArray(config.steps)) {
+            errors.push('Steps must be an array');
         }
 
         return {

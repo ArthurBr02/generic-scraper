@@ -69,7 +69,7 @@
       <form @submit.prevent="saveConfig">
         <div class="space-y-4">
           <component
-            v-for="field in blockDefinition.configSchema.fields"
+            v-for="field in visibleFields"
             :key="field.key"
             :is="getFieldComponent(field.type)"
             :field="field"
@@ -105,6 +105,7 @@ import CheckboxField from '@/components/form/CheckboxField.vue';
 import CodeField from '@/components/form/CodeField.vue';
 import KeyValueField from '@/components/form/KeyValueField.vue';
 import ArrayField from '@/components/form/ArrayField.vue';
+import FieldListField from '@/components/form/FieldListField.vue';
 
 export default defineComponent({
   name: 'BlockConfigPanel',
@@ -117,7 +118,8 @@ export default defineComponent({
     CheckboxField,
     CodeField,
     KeyValueField,
-    ArrayField
+    ArrayField,
+    FieldListField
   },
 
   data() {
@@ -169,6 +171,29 @@ export default defineComponent({
       return definition;
     },
 
+    /**
+     * Champs visibles selon les conditions showIf
+     */
+    visibleFields(): ConfigField[] {
+      if (!this.blockDefinition?.configSchema?.fields) return [];
+
+      return this.blockDefinition.configSchema.fields.filter(field => {
+        if (!field.showIf) return true;
+
+        // Si showIf est une fonction
+        if (typeof field.showIf === 'function') {
+          return field.showIf(this.localConfig);
+        }
+
+        // Si showIf est un objet { key, value }
+        if (typeof field.showIf === 'object' && 'key' in field.showIf) {
+          return this.localConfig[field.showIf.key] === field.showIf.value;
+        }
+
+        return true;
+      });
+    },
+
     hasErrors(): boolean {
       return Object.keys(this.errors).length > 0;
     }
@@ -190,6 +215,15 @@ export default defineComponent({
           this.errors = {};
         }
       }
+    },
+
+    // Surveiller les changements de config pour mettre à jour les champs visibles
+    localConfig: {
+      deep: true,
+      handler() {
+        // Force le recalcul de visibleFields
+        this.$forceUpdate();
+      }
     }
   },
 
@@ -205,7 +239,8 @@ export default defineComponent({
         checkbox: 'CheckboxField',
         code: 'CodeField',
         keyvalue: 'KeyValueField',
-        array: 'ArrayField'
+        array: 'ArrayField',
+        fieldList: 'FieldListField'
       };
       return componentMap[type] || 'TextField';
     },
