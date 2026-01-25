@@ -42,7 +42,43 @@
 
       <!-- Template pour les nœuds personnalisés -->
       <template #node-custom="{ data, id }">
-        <div class="custom-node-wrapper">
+        <!-- Nœud de type Init -->
+        <InitNode
+          v-if="data.type === 'init'"
+          :id="id"
+          :data="data"
+          :selected="isNodeSelected(id)"
+          :color="getBlockColor(data.type)"
+          :icon="getBlockIcon(data.type)"
+          @context-menu="showNodeContextMenu($event, id)"
+        />
+
+        <!-- Nœud de type Loop -->
+        <LoopNode
+          v-else-if="data.type === 'loop'"
+          :id="id"
+          :data="data"
+          :selected="isNodeSelected(id)"
+          :color="getBlockColor(data.type)"
+          :icon="getBlockIcon(data.type)"
+          @context-menu="showNodeContextMenu($event, id)"
+          @delete="deleteNode(id)"
+        />
+
+        <!-- Nœud de type Condition -->
+        <ConditionNode
+          v-else-if="data.type === 'condition'"
+          :id="id"
+          :data="data"
+          :selected="isNodeSelected(id)"
+          :color="getBlockColor(data.type)"
+          :icon="getBlockIcon(data.type)"
+          @context-menu="showNodeContextMenu($event, id)"
+          @delete="deleteNode(id)"
+        />
+
+        <!-- Nœuds standards -->
+        <div v-else class="custom-node-wrapper">
           
           <!-- Label personnalisé au-dessus du bloc -->
           <div v-if="data.label" class="node-label-above">
@@ -52,7 +88,10 @@
             :class="[
               'custom-node',
               `node-type-${data.type}`,
-              { selected: isNodeSelected(id) }
+              { 
+                selected: isNodeSelected(id),
+                'in-loop-body': data.parentLoopId
+              }
             ]"
             @contextmenu.prevent="showNodeContextMenu($event, id)"
           >
@@ -67,6 +106,7 @@
                 <div v-if="data.description" class="node-description">{{ data.description }}</div>
               </div>
               <button
+                v-if="data.canDelete !== false"
                 class="node-delete"
                 @click.stop="deleteNode(id)"
                 title="Supprimer"
@@ -129,6 +169,9 @@ import { useWorkflowStore } from '@/stores/workflow';
 import { useBlocksStore } from '@/stores/blocks';
 import { blockDefinitions } from '@/config/blocks.config';
 import CustomEdge from './CustomEdge.vue';
+import LoopNode from './workflow/nodes/LoopNode.vue';
+import ConditionNode from './workflow/nodes/ConditionNode.vue';
+import InitNode from './workflow/nodes/InitNode.vue';
 import type { Node, Edge, Connection, NodeChange, EdgeChange } from '@vue-flow/core';
 
 // Importation des styles Vue Flow
@@ -152,7 +195,10 @@ export default defineComponent({
     Background,
     Controls,
     MiniMap,
-    CustomEdge
+    CustomEdge,
+    LoopNode,
+    ConditionNode,
+    InitNode
   },
 
   data() {
@@ -244,6 +290,77 @@ export default defineComponent({
         return;
       }
 
+      const sourceNode = this.nodes.find(n => n.id === connection.source);
+      const targetNode = this.nodes.find(n => n.id === connection.target);
+
+      if (!sourceNode || !targetNode) {
+        console.warn('Nodes not found');
+        return;
+      }
+
+      // Si la connexion vient d'un handle -loop, marquer le node target avec le parentLoopId
+      if (connection.sourceHandle?.endsWith('-loop')) {
+        if (!targetNode.data.parentLoopId) {
+          this.updateNodeData(connection.target, {
+            ...targetNode.data,
+            parentLoopId: connection.source
+          });
+        }
+      }
+      // Si on connecte à un node qui a un parentLoopId, propager ce parentLoopId
+      else if (targetNode.data.parentLoopId && !sourceNode.data.parentLoopId) {
+        // Vérifier si le source a d'autres connexions au workflow principal
+        const sourceHasMainWorkflowConnections = this.edges.some(e => {
+          if (e.source === connection.source || e.target === connection.source) {
+            const otherNode = this.nodes.find(n => 
+              n.id === (e.source === connection.source ? e.target : e.source)
+            );
+            return otherNode && !otherNode.data.parentLoopId && otherNode.data.type !== 'loop';
+          }
+          return false;
+        });
+
+        if (!sourceHasMainWorkflowConnections) {
+          // Le node source rejoint le loop body du target
+          this.updateNodeData(connection.source, {
+            ...sourceNode.data,
+            parentLoopId: targetNode.data.parentLoopId
+          });
+        }
+      }
+      // Si on connecte depuis un node qui a un parentLoopId vers un node sans
+      else if (sourceNode.data.parentLoopId && !targetNode.data.parentLoopId) {
+        // Vérifier si le target a d'autres connexions au workflow principal
+        const targetHasMainWorkflowConnections = this.edges.some(e => {
+          if (e.source === connection.target || e.target === connection.target) {
+            const otherNode = this.nodes.find(n => 
+              n.id === (e.source === connection.target ? e.target : e.source)
+            );
+            return otherNode && !otherNode.data.parentLoopId && otherNode.data.type !== 'loop';
+          }
+          return false;
+        });
+
+        if (!targetHasMainWorkflowConnections) {
+          // Le node target rejoint le loop body du source
+          this.updateNodeData(connection.target, {
+            ...targetNode.data,
+            parentLoopId: sourceNode.data.parentLoopId
+          });
+        } else {
+          // Le target reste dans le workflow principal, le source doit quitter le loop
+          // Vérifier d'abord si le source est encore connecté au loop
+          setTimeout(() => {
+            if (!this.isNodeConnectedToLoop(connection.source, sourceNode.data.parentLoopId)) {
+              this.updateNodeData(connection.source, {
+                ...sourceNode.data,
+                parentLoopId: undefined
+              });
+            }
+          }, 0);
+        }
+      }
+
       const edge: Edge = {
         id: `edge-${connection.source}-${connection.target}-${Date.now()}`,
         source: connection.source,
@@ -265,15 +382,120 @@ export default defineComponent({
      * Suppression d'une edge via le bouton
      */
     onDeleteEdge(edgeId: string): void {
+      // Récupérer l'edge avant de la supprimer
+      const edge = this.edges.find(e => e.id === edgeId);
+      
+      if (edge) {
+        const sourceNode = this.nodes.find(n => n.id === edge.source);
+        const targetNode = this.nodes.find(n => n.id === edge.target);
+
+        // Si c'est une edge de loop (handle -loop), nettoyer le parentLoopId du node target
+        if (edge.sourceHandle?.endsWith('-loop')) {
+          if (targetNode && targetNode.data.parentLoopId === edge.source) {
+            // Retirer le marquage parentLoopId
+            this.updateNodeData(edge.target, {
+              ...targetNode.data,
+              parentLoopId: undefined
+            });
+
+            // Trouver tous les descendants de ce node et retirer leur parentLoopId aussi
+            const removeParentLoopIdFromDescendants = (nodeId: string) => {
+              const outgoingEdges = this.edges.filter(e => e.source === nodeId && e.id !== edgeId);
+              outgoingEdges.forEach(outEdge => {
+                const descendant = this.nodes.find(n => n.id === outEdge.target);
+                if (descendant && descendant.data.parentLoopId === edge.source) {
+                  this.updateNodeData(outEdge.target, {
+                    ...descendant.data,
+                    parentLoopId: undefined
+                  });
+                  removeParentLoopIdFromDescendants(outEdge.target);
+                }
+              });
+            };
+
+            removeParentLoopIdFromDescendants(edge.target);
+          }
+        }
+        // Si on supprime une edge entre nodes de loop body, vérifier si le target doit perdre son parentLoopId
+        else if (sourceNode?.data.parentLoopId && targetNode?.data.parentLoopId) {
+          // Après suppression, vérifier si le target est encore connecté au loop
+          setTimeout(() => {
+            const isStillConnectedToLoop = this.isNodeConnectedToLoop(edge.target, targetNode.data.parentLoopId);
+            if (!isStillConnectedToLoop) {
+              this.updateNodeData(edge.target, {
+                ...targetNode.data,
+                parentLoopId: undefined
+              });
+            }
+          }, 0);
+        }
+      }
+
       this.removeEdge(edgeId);
+    },
+
+    /**
+     * Vérifie si un node est encore connecté à un loop (directement ou indirectement)
+     */
+    isNodeConnectedToLoop(nodeId: string, loopId: string): boolean {
+      // Vérifier si le node est directement connecté au loop via le handle -loop
+      const directLoopConnection = this.edges.find(
+        e => e.source === loopId && e.sourceHandle === `${loopId}-loop` && e.target === nodeId
+      );
+      if (directLoopConnection) return true;
+
+      // Vérifier si le node est connecté à un autre node du même loop body
+      const incomingEdges = this.edges.filter(e => e.target === nodeId);
+      for (const edge of incomingEdges) {
+        const sourceNode = this.nodes.find(n => n.id === edge.source);
+        if (sourceNode?.data.parentLoopId === loopId) {
+          return true;
+        }
+      }
+
+      return false;
     },
 
     /**
      * Validation des règles de connexion
      */
     validateConnectionRules(connection: Connection): boolean {
-      // Pour l'instant, autorise toutes les connexions
-      // La validation complète sera implémentée plus tard
+      const sourceNode = this.nodes.find(n => n.id === connection.source);
+      const targetNode = this.nodes.find(n => n.id === connection.target);
+
+      if (!sourceNode || !targetNode) {
+        return false;
+      }
+
+      // Récupérer les parentLoopId
+      const sourceParentLoopId = sourceNode.data?.parentLoopId;
+      const targetParentLoopId = targetNode.data?.parentLoopId;
+
+      // 1. Si le handle source est un handle de loop (-loop), le target doit être marqué comme enfant de ce loop
+      if (connection.sourceHandle?.endsWith('-loop')) {
+        // La connexion depuis un handle -loop est autorisée (elle créera le lien parent-enfant)
+        return true;
+      }
+
+      // 2. Si les deux nodes sont dans des loop bodies différents, interdire la connexion
+      if (sourceParentLoopId && targetParentLoopId && sourceParentLoopId !== targetParentLoopId) {
+        console.warn('Cannot connect nodes from different loop bodies');
+        return false;
+      }
+
+      // 3. Cas spécial : permettre d'ajouter un nouveau node (sans parentLoopId) à un loop body
+      // Le node sera automatiquement marqué avec le parentLoopId lors de la connexion
+      if (!sourceParentLoopId && targetParentLoopId) {
+        // Source sans parent, target dans un loop -> autorisé (source sera ajouté au loop)
+        return true;
+      }
+      
+      if (sourceParentLoopId && !targetParentLoopId) {
+        // Source dans un loop, target sans parent -> autorisé (target sera ajouté au loop)
+        return true;
+      }
+
+      // 4. Toutes les autres connexions sont autorisées
       return true;
     },
 
@@ -378,6 +600,15 @@ export default defineComponent({
      * Supprime un nœud
      */
     deleteNode(nodeId: string): void {
+      // Vérifier si le node peut être supprimé
+      const workflowStore = useWorkflowStore();
+      const node = workflowStore.getNodeById(nodeId);
+      
+      if (node?.data?.canDelete === false) {
+        console.warn('Cannot delete this node');
+        return;
+      }
+      
       this.removeNode(nodeId);
       this.hideContextMenu();
     },
@@ -535,6 +766,19 @@ export default defineComponent({
 
 .custom-node.selected {
   @apply border-blue-500 ring-2 ring-blue-500/10 shadow-lg !z-50;
+}
+
+/* Nodes dans un loop body - style distinctif */
+.custom-node.in-loop-body {
+  @apply border-purple-300 dark:border-purple-700 bg-purple-50/50 dark:bg-purple-950/30;
+}
+
+.custom-node.in-loop-body:hover {
+  @apply border-purple-400 dark:border-purple-600 shadow-md;
+}
+
+.custom-node.in-loop-body.selected {
+  @apply border-purple-500 ring-2 ring-purple-500/10;
 }
 
 .node-content {

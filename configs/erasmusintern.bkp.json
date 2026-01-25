@@ -1,8 +1,5 @@
 {
-  "$schema": "../../src/schemas/workflow.schema.json",
-  "name": "erasmusintern",
-  "description": "",
-  "version": "1.0.0",
+  "name": "mon-scraper",
   "target": {
     "url": "https://erasmusintern.org/traineeships?search_api_views_fulltext=developer&field_traineeship_full_location_field_traineeship_location_count=All&f%5B0%5D=field_traineeship_field_studies%253Aparents_all%3A38"
   },
@@ -10,106 +7,76 @@
     "headless": false,
     "timeout": 30000
   },
-  "logging": {
-    "level": "debug",
-    "console": true
-  },
   "errorHandling": {
     "retries": 3,
     "retryDelay": 1000,
     "screenshotOnError": true
   },
-  "scheduling": {
-    "enabled": false,
-    "cron": "",
-    "timezone": "Europe/Paris"
-  },
-  "output": {
-    "format": "json",
-    "path": "./output/",
-    "append": true
+  "logging": {
+    "level": "debug",
+    "console": true
   },
   "workflows": [
     {
-      "name": "main",
+      "name": "main-workflow",
       "steps": [
         {
-          "id": "step-0",
-          "name": "navigate - 0",
           "type": "navigate",
           "config": {
             "url": "{{target.url}}",
             "waitUntil": "networkidle"
-          },
-          "next": "step-1"
+          }
         },
         {
-          "id": "step-1",
-          "name": "wait - 1",
           "type": "wait",
           "config": {
             "time": 3000
-          },
-          "next": "step-2"
+          }
         },
         {
-          "id": "step-2",
-          "name": "click - 2",
           "type": "click",
           "config": {
             "selector": "body > div.fc-consent-root > div.fc-dialog-container > div.fc-dialog.fc-choice-dialog > div.fc-footer-buttons-container > div.fc-footer-buttons > button.fc-button.fc-cta-do-not-consent.fc-secondary-button > p",
             "waitAfterClick": 2000
-          },
-          "next": "step-3"
+          }
         },
         {
-          "id": "step-3",
-          "name": "scroll - 3",
           "type": "scroll",
           "config": {
             "direction": "down",
             "pixels": 500
-          },
-          "next": "extract-data"
+          }
         },
         {
-          "id": "extract-data",
-          "name": "extract-data",
+          "id": "extract-data",  
           "type": "extract",
           "config": {
             "container": ".view-content > div",
             "multiple": true,
             "fields": [
-              {
-                "name": "url",
-                "selector": ".inline-header-content > div.field.field-name-title.field-type-ds.field-label-hidden.pull-left > div > div > h3 > a",
-                "type": "attribute",
-                "attribute": "href"
-              }
+                {
+                    "name": "url",
+                    "selector": ".inline-header-content > div.field.field-name-title.field-type-ds.field-label-hidden.pull-left > div > div > h3 > a",
+                    "type": "attribute",
+                    "attribute": "href"
+                }
             ]
-          },
-          "next": "step-4"
+          }
         },
         {
-          "id": "step-4",
-          "name": "pagination - 5",
-          "type": "pagination",
-          "config": {
-            "type": "click",
-            "nextSelector": ".next > a",
-            "waitAfterClick": 3000,
-            "waitForSelector": ".view-content > div",
-            "repeatSteps": [
-              "extract-data"
-            ]
-          },
-          "output": "urls",
-          "next": "step-5"
+            "type": "pagination",
+            "output": "urls",
+            "config": {
+              "type": "click",
+              "nextSelector": ".next > a",
+              "waitAfterClick": 3000,
+              "waitForSelector": ".view-content > div",
+              "repeatSteps": ["extract-data"]
+            }
         },
         {
-          "id": "step-5",
-          "name": "loop - 6",
           "type": "loop",
+          "output": "erasmusintern_details",
           "config": {
             "items": "urls",
             "itemVar": "item",
@@ -130,6 +97,7 @@
               },
               {
                 "type": "extract",
+                "output": "details",
                 "config": {
                   "fields": [
                     {
@@ -191,14 +159,17 @@
                       "type": "pageUrl"
                     }
                   ]
-                },
-                "output": "details"
+                }
               }
             ]
-          },
-          "output": "erasmusintern_details"
+          }
         }
       ]
     }
-  ]
+  ],
+  "output": {
+    "format": "json",
+    "path": "./output/",
+    "append": true
+  }
 }

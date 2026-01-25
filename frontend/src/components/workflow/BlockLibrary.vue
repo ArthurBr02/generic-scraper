@@ -110,12 +110,16 @@ export default defineComponent({
     categories(): CategoryGroup[] {
       const categoryMap = new Map<string, BlockDefinition[]>();
       
-      blockDefinitions.forEach(block => {
-        if (!categoryMap.has(block.category)) {
-          categoryMap.set(block.category, []);
-        }
-        categoryMap.get(block.category)!.push(block);
-      });
+      // Filtrer le bloc 'init' qui ne doit pas être dans la bibliothèque
+      blockDefinitions
+        .filter(block => block.type !== 'init')
+        .filter(block => !block.disabled)
+        .forEach(block => {
+          if (!categoryMap.has(block.category)) {
+            categoryMap.set(block.category, []);
+          }
+          categoryMap.get(block.category)!.push(block);
+        });
 
       return Array.from(categoryMap.entries()).map(([name, blocks]) => ({
         name,

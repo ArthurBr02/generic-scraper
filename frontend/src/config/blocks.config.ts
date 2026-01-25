@@ -8,18 +8,20 @@ import type { BlockDefinition } from '@/types/blocks';
  * Couleurs par catégorie
  */
 export const categoryColors: Record<string, string> = {
+  config: '#06B6D4',         // cyan-500
   navigation: '#3B82F6',      // blue-500
   interaction: '#8B5CF6',     // purple-500
   extraction: '#10B981',      // green-500
   api: '#F59E0B',            // orange-500
   control: '#EAB308',        // yellow-500
-  authentication: '#EC4899'   // pink-500
+  authentication: '#EC4899'  // pink-500
 };
 
 /**
  * Icônes par catégorie (Heroicons)
  */
 export const categoryIcons: Record<string, string> = {
+  config: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z',
   navigation: 'M13 10V3L4 14h7v7l9-11h-7z',
   interaction: 'M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122',
   extraction: 'M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12',
@@ -32,6 +34,289 @@ export const categoryIcons: Record<string, string> = {
  * Définitions de tous les blocs disponibles
  */
 export const blockDefinitions: BlockDefinition[] = [
+  // ========== CONFIG ==========
+  {
+    id: 'init',
+    type: 'init',
+    category: 'config',
+    name: 'Initialisation',
+    description: 'Configuration globale du scraper',
+    icon: categoryIcons.config,
+    color: categoryColors.config,
+    inputs: [],
+    outputs: [
+      {
+        id: 'out',
+        name: 'Démarrer',
+        type: 'flow',
+        required: false,
+        multiple: true
+      }
+    ],
+    configSchema: {
+      fields: [
+        {
+          key: 'target',
+          type: 'group',
+          label: 'URL Cible',
+          fields: [
+            {
+              key: 'target.url',
+              type: 'text',
+              label: 'URL de départ',
+              placeholder: 'https://example.com',
+              help: 'URL initiale du scraping'
+            }
+          ]
+        },
+        {
+          key: 'browser',
+          type: 'group',
+          label: 'Configuration Navigateur',
+          fields: [
+            {
+              key: 'browser.type',
+              type: 'select',
+              label: 'Type de navigateur',
+              default: 'chromium',
+              options: [
+                { value: 'chromium', label: 'Chromium' },
+                { value: 'firefox', label: 'Firefox' },
+                { value: 'webkit', label: 'WebKit' }
+              ]
+            },
+            {
+              key: 'browser.headless',
+              type: 'checkbox',
+              label: 'Mode headless',
+              default: true
+            },
+            {
+              key: 'browser.timeout',
+              type: 'number',
+              label: 'Timeout global (ms)',
+              default: 30000,
+              validation: { min: 0, max: 300000 }
+            },
+            {
+              key: 'browser.viewport',
+              type: 'group',
+              label: 'Viewport',
+              fields: [
+                {
+                  key: 'browser.viewport.width',
+                  type: 'number',
+                  label: 'Largeur',
+                  default: 1920,
+                  validation: { min: 320, max: 3840 }
+                },
+                {
+                  key: 'browser.viewport.height',
+                  type: 'number',
+                  label: 'Hauteur',
+                  default: 1080,
+                  validation: { min: 240, max: 2160 }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          key: 'logging',
+          type: 'group',
+          label: 'Logging',
+          fields: [
+            {
+              key: 'logging.level',
+              type: 'select',
+              label: 'Niveau de log',
+              default: 'info',
+              options: [
+                { value: 'error', label: 'Error' },
+                { value: 'warn', label: 'Warning' },
+                { value: 'info', label: 'Info' },
+                { value: 'debug', label: 'Debug' }
+              ]
+            },
+            {
+              key: 'logging.console',
+              type: 'checkbox',
+              label: 'Afficher dans la console',
+              default: true
+            }
+          ]
+        },
+        {
+          key: 'errorHandling',
+          type: 'group',
+          label: 'Gestion des erreurs',
+          fields: [
+            {
+              key: 'errorHandling.retries',
+              type: 'number',
+              label: 'Nombre de retries',
+              default: 3,
+              validation: { min: 0, max: 10 }
+            },
+            {
+              key: 'errorHandling.retryDelay',
+              type: 'number',
+              label: 'Délai entre retries (ms)',
+              default: 1000,
+              validation: { min: 0, max: 60000 }
+            },
+            {
+              key: 'errorHandling.screenshotOnError',
+              type: 'checkbox',
+              label: 'Screenshot sur erreur',
+              default: true
+            },
+            {
+              key: 'errorHandling.continueOnError',
+              type: 'checkbox',
+              label: 'Continuer sur erreur',
+              default: false
+            }
+          ]
+        },
+        {
+          key: 'scheduling',
+          type: 'group',
+          label: 'Planification',
+          fields: [
+            {
+              key: 'scheduling.enabled',
+              type: 'checkbox',
+              label: 'Activer le scheduler',
+              default: false
+            },
+            {
+              key: 'scheduling.cron',
+              type: 'text',
+              label: 'Expression cron',
+              placeholder: '0 * * * *',
+              help: 'Format: minute heure jour mois jour_semaine'
+            },
+            {
+              key: 'scheduling.timezone',
+              type: 'text',
+              label: 'Fuseau horaire',
+              default: 'Europe/Paris',
+              placeholder: 'Europe/Paris'
+            }
+          ]
+        },
+        {
+          key: 'output',
+          type: 'group',
+          label: 'Export des données',
+          fields: [
+            {
+              key: 'output.format',
+              type: 'select',
+              label: 'Format',
+              required: true,
+              default: 'json',
+              options: [
+                { value: 'json', label: 'JSON' },
+                { value: 'csv', label: 'CSV' }
+              ]
+            },
+            {
+              key: 'output.path',
+              type: 'text',
+              label: 'Chemin du fichier',
+              required: true,
+              placeholder: './output'
+            },
+            {
+              key: 'output.append',
+              type: 'checkbox',
+              label: 'Ajouter aux données existantes',
+              default: false
+            },
+            {
+              key: 'output.json.pretty',
+              type: 'checkbox',
+              label: 'JSON formaté',
+              default: true,
+              showIf: (config) => config.output?.format === 'json'
+            },
+            {
+              key: 'output.csv.delimiter',
+              type: 'text',
+              label: 'CSV délimiteur',
+              default: ',',
+              showIf: (config) => config.output?.format === 'csv'
+            },
+            {
+              key: 'output.csv.includeHeaders',
+              type: 'checkbox',
+              label: 'Inclure les en-têtes',
+              default: true,
+              showIf: (config) => config.output?.format === 'csv'
+            },
+            {
+              key: 'output.csv.encoding',
+              type: 'select',
+              label: 'Encodage',
+              default: 'utf8',
+              options: [
+                { value: 'utf8', label: 'UTF-8' },
+                { value: 'latin1', label: 'Latin-1' },
+                { value: 'ascii', label: 'ASCII' }
+              ],
+              showIf: (config) => config.output?.format === 'csv'
+            }
+          ]
+        }
+      ]
+    },
+    defaultConfig: {
+      target: {
+        url: ''
+      },
+      browser: {
+        type: 'chromium',
+        headless: true,
+        timeout: 30000,
+        viewport: {
+          width: 1920,
+          height: 1080
+        }
+      },
+      logging: {
+        level: 'info',
+        console: true
+      },
+      errorHandling: {
+        retries: 3,
+        retryDelay: 1000,
+        screenshotOnError: true,
+        continueOnError: false
+      },
+      scheduling: {
+        enabled: false,
+        cron: '',
+        timezone: 'Europe/Paris'
+      },
+      output: {
+        format: 'json',
+        path: './output',
+        append: false,
+        createPath: true,
+        json: {
+          pretty: true
+        },
+        csv: {
+          delimiter: ';',
+          includeHeaders: true,
+          encoding: 'utf8'
+        }
+      }
+    }
+  },
+
   // ========== NAVIGATION ==========
   {
     id: 'navigate',
@@ -579,11 +864,11 @@ export const blockDefinitions: BlockDefinition[] = [
     configSchema: {
       fields: [
         {
-          key: 'selector',
+          key: 'container',
           type: 'text',
-          label: 'Sélecteur CSS',
-          placeholder: '.product, #article',
-          description: 'Sélecteur CSS de l\'élément à extraire'
+          label: 'Conteneur CSS',
+          placeholder: '.product, .article, .item',
+          description: 'Sélecteur CSS du conteneur parent (pour extraction multiple)'
         },
         {
           key: 'multiple',
@@ -705,7 +990,7 @@ export const blockDefinitions: BlockDefinition[] = [
       ]
     },
     defaultConfig: {
-      selector: '',
+      container: '',
       multiple: false,
       fields: [],
       limit: 0,
@@ -800,7 +1085,7 @@ export const blockDefinitions: BlockDefinition[] = [
     type: 'loop',
     category: 'control',
     name: 'Boucle',
-    description: 'Répète des actions',
+    description: 'Itère sur des éléments',
     icon: categoryIcons.control,
     color: categoryColors.control,
     inputs: [
@@ -831,34 +1116,45 @@ export const blockDefinitions: BlockDefinition[] = [
     configSchema: {
       fields: [
         {
-          key: 'type',
-          type: 'select',
-          label: 'Type de boucle',
-          default: 'count',
-          options: [
-            { value: 'count', label: 'Nombre d\'itérations' },
-            { value: 'while', label: 'Tant que (condition)' }
-          ]
+          key: 'items',
+          type: 'text',
+          label: 'Items à parcourir',
+          required: true,
+          placeholder: 'productUrls ou data.products',
+          help: 'Nom de variable contenant le tableau à parcourir'
         },
         {
-          key: 'count',
+          key: 'itemVar',
+          type: 'text',
+          label: 'Variable élément',
+          default: 'item',
+          placeholder: 'item',
+          help: 'Nom de variable pour l\'élément courant'
+        },
+        {
+          key: 'indexVar',
+          type: 'text',
+          label: 'Variable index',
+          default: 'index',
+          placeholder: 'index',
+          help: 'Nom de variable pour l\'index courant'
+        },
+        {
+          key: 'limit',
           type: 'number',
-          label: 'Nombre d\'itérations',
-          default: 5,
-          showIf: (config) => config.type === 'count'
-        },
-        {
-          key: 'condition',
-          type: 'code',
-          label: 'Condition',
-          placeholder: 'page.locator(".next").isVisible()',
-          showIf: (config) => config.type === 'while'
+          label: 'Limite (optionnel)',
+          placeholder: 'Laisser vide pour tous',
+          validation: { min: 1 },
+          help: 'Nombre maximum d\'itérations'
         }
       ]
     },
     defaultConfig: {
-      type: 'count',
-      count: 5
+      items: '',
+      itemVar: 'item',
+      indexVar: 'index',
+      limit: null,
+      steps: []
     }
   },
 
@@ -870,6 +1166,7 @@ export const blockDefinitions: BlockDefinition[] = [
     description: 'Branchement conditionnel',
     icon: categoryIcons.control,
     color: categoryColors.control,
+    disabled: true, // Bloc temporairement désactivé
     inputs: [
       {
         id: 'in',
@@ -1141,7 +1438,8 @@ export const blockDefinitions: BlockDefinition[] = [
       params: {},
       saveAs: ''
     }
-  }
+  },
+
 ];
 
 /**

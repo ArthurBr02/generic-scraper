@@ -1,19 +1,37 @@
 {
   "europass": {
     "id": "europass",
-    "name": "mon-scraper",
+    "name": "europass",
     "configFile": "europass.json",
     "createdAt": "2026-01-21T20:56:35.377Z",
-    "updatedAt": "2026-01-23T16:46:40.687Z",
+    "updatedAt": "2026-01-25T14:41:00.784Z",
     "runCount": 0,
     "description": ""
   },
   "erasmusintern": {
     "id": "erasmusintern",
-    "name": "mon-scraper",
+    "name": "erasmusintern",
     "configFile": "erasmusintern.json",
     "createdAt": "2026-01-23T16:04:14.774Z",
-    "updatedAt": "2026-01-23T16:04:14.774Z",
+    "updatedAt": "2026-01-25T14:14:34.138Z",
+    "runCount": 0,
+    "description": ""
+  },
+  "751860ab-f5ba-41f1-8177-bcf1999ec62f": {
+    "id": "751860ab-f5ba-41f1-8177-bcf1999ec62f",
+    "name": "test nouvelle config",
+    "description": "",
+    "configFile": "751860ab-f5ba-41f1-8177-bcf1999ec62f.json",
+    "createdAt": "2026-01-25T13:45:44.207Z",
+    "updatedAt": "2026-01-25T14:36:12.206Z",
+    "runCount": 0
+  },
+  "erasmusintern.bkp": {
+    "id": "erasmusintern.bkp",
+    "name": "mon-scraper",
+    "configFile": "erasmusintern.bkp.json",
+    "createdAt": "2026-01-25T14:15:26.608Z",
+    "updatedAt": "2026-01-25T14:15:26.608Z",
     "runCount": 0
   }
 }

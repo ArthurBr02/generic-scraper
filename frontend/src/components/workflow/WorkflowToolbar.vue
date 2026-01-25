@@ -248,6 +248,9 @@ export default defineComponent({
       try {
         const text = await file.text();
         const config = WorkflowConverter.importFromJson(text);
+        
+        console.log('Config imported from JSON:', config);
+        console.log('Config.target:', config.target);
 
         // Valider la configuration
         const errors = WorkflowConverter.validate(config);
@@ -260,8 +263,20 @@ export default defineComponent({
         // Convertir en graphe
         const { nodes, edges } = WorkflowConverter.fromConfig(config);
         
-        // Charger dans le store (nouveau workflow non sauvegardé)
-        this.loadWorkflow({ nodes, edges });
+        // Extraire uniquement les champs de configuration globale
+        const globalConfig: any = {};
+        if (config.target) globalConfig.target = config.target;
+        if (config.browser) globalConfig.browser = config.browser;
+        if (config.logging) globalConfig.logging = config.logging;
+        if (config.errorHandling) globalConfig.errorHandling = config.errorHandling;
+        if (config.scheduling) globalConfig.scheduling = config.scheduling;
+        if (config.output) globalConfig.output = config.output;
+        
+        console.log('Global config extracted:', globalConfig);
+        console.log('globalConfig.target:', globalConfig.target);
+        
+        // Charger dans le store (nouveau workflow non sauvegardé) avec la config globale
+        this.loadWorkflow({ nodes, edges, config: globalConfig });
         this.setCurrentTask(null, config.name);
         
         this.success(`Workflow "${config.name}" importé avec succès`);

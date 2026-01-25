@@ -76,6 +76,7 @@
             :model-value="getFieldValue(field.key)"
             @update:model-value="updateFieldValue(field.key, $event)"
             :error="errors[field.key]"
+            :full-config="localConfig"
           />
         </div>
       </form>
@@ -106,6 +107,7 @@ import CodeField from '@/components/form/CodeField.vue';
 import KeyValueField from '@/components/form/KeyValueField.vue';
 import ArrayField from '@/components/form/ArrayField.vue';
 import FieldListField from '@/components/form/FieldListField.vue';
+import GroupField from '@/components/form/GroupField.vue';
 
 export default defineComponent({
   name: 'BlockConfigPanel',
@@ -119,7 +121,8 @@ export default defineComponent({
     CodeField,
     KeyValueField,
     ArrayField,
-    FieldListField
+    FieldListField,
+    GroupField
   },
 
   data() {
@@ -204,8 +207,8 @@ export default defineComponent({
       immediate: true,
       handler(newBlock: BlockInstance | null) {
         if (newBlock) {
-          // Initialiser la configuration locale avec la config du bloc
-          this.localConfig = { ...(newBlock.data?.config || {}) };
+          // Initialiser la configuration locale avec la config du bloc (copie profonde)
+          this.localConfig = JSON.parse(JSON.stringify(newBlock.data?.config || {}));
           this.blockLabel = newBlock.data?.label || '';
           this.errors = {};
           this.validateAllFields();
@@ -240,22 +243,73 @@ export default defineComponent({
         code: 'CodeField',
         keyvalue: 'KeyValueField',
         array: 'ArrayField',
-        fieldList: 'FieldListField'
+        fieldList: 'FieldListField',
+        group: 'GroupField'
       };
       return componentMap[type] || 'TextField';
     },
 
     getFieldValue(key: string): any {
+      // Pour les groupes, retourner l'objet complet
+      const field = this.blockDefinition?.configSchema.fields.find(f => f.key === key);
+      if (field?.type === 'group') {
+        // Retourner l'objet groupe complet (ex: pour 'browser', retourner this.localConfig.browser)
+        return this.localConfig[key] || {};
+      }
+
+      // Pour les champs normaux avec clé imbriquée (ex: 'browser.type')
+      if (key.includes('.')) {
+        const parts = key.split('.');
+        let value: any = this.localConfig;
+        
+        for (const part of parts) {
+          if (value && typeof value === 'object' && part in value) {
+            value = value[part];
+          } else {
+            // Retourner la valeur par défaut si définie
+            return field?.default ?? '';
+          }
+        }
+        
+        return value;
+      }
+
+      // Pour les champs simples
       if (key in this.localConfig) {
         return this.localConfig[key];
       }
+      
       // Retourner la valeur par défaut si définie
-      const field = this.blockDefinition?.configSchema.fields.find(f => f.key === key);
       return field?.default ?? '';
     },
 
     updateFieldValue(key: string, value: any): void {
-      this.localConfig[key] = value;
+      const field = this.blockDefinition?.configSchema.fields.find(f => f.key === key);
+      
+      // Pour les groupes, mettre à jour l'objet complet
+      if (field?.type === 'group') {
+        this.localConfig[key] = value;
+      } else if (key.includes('.')) {
+        // Pour les champs imbriqués
+        const parts = key.split('.');
+        let current: any = this.localConfig;
+
+        // Créer les objets intermédiaires si nécessaire
+        for (let i = 0; i < parts.length - 1; i++) {
+          const part = parts[i];
+          if (!current[part] || typeof current[part] !== 'object') {
+            current[part] = {};
+          }
+          current = current[part];
+        }
+
+        // Mettre à jour la valeur finale
+        current[parts[parts.length - 1]] = value;
+      } else {
+        // Pour les champs simples
+        this.localConfig[key] = value;
+      }
+      
       this.validateField(key, value);
     },
 

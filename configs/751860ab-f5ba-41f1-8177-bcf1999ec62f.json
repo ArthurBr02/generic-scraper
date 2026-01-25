@@ -1,0 +1,92 @@
+{
+  "$schema": "../../src/schemas/workflow.schema.json",
+  "name": "test nouvelle config",
+  "description": "",
+  "version": "1.0.0",
+  "target": {
+    "url": "https://example.com/"
+  },
+  "browser": {
+    "type": "chromium",
+    "headless": true,
+    "timeout": 30000,
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "logging": {
+    "level": "info",
+    "console": true
+  },
+  "errorHandling": {
+    "retries": 3,
+    "retryDelay": 1000,
+    "screenshotOnError": true,
+    "continueOnError": false
+  },
+  "scheduling": {
+    "enabled": false,
+    "cron": "",
+    "timezone": "Europe/Paris"
+  },
+  "output": {
+    "format": "json",
+    "path": "./output",
+    "append": false,
+    "createPath": true,
+    "columns": [
+      "h1"
+    ],
+    "json": {
+      "pretty": true
+    },
+    "csv": {
+      "delimiter": ";",
+      "includeHeaders": true,
+      "encoding": "utf8"
+    }
+  },
+  "workflows": [
+    {
+      "name": "main",
+      "steps": [
+        {
+          "id": "node-1769348783458",
+          "name": "Navigation",
+          "type": "navigate",
+          "config": {
+            "url": "{{target.url}}",
+            "waitUntil": "load",
+            "timeout": 30000
+          },
+          "next": "node-1769348804303"
+        },
+        {
+          "id": "node-1769348804303",
+          "name": "Extraction",
+          "type": "extract",
+          "config": {
+            "container": "body",
+            "multiple": false,
+            "fields": [
+              {
+                "name": "h1",
+                "selector": "h1",
+                "type": "text",
+                "attribute": "",
+                "method": "innerText",
+                "htmlMethod": "innerHTML",
+                "trim": true,
+                "regex": "",
+                "default": "default"
+              }
+            ],
+            "limit": 0
+          },
+          "output": "data"
+        }
+      ]
+    }
+  ]
+}

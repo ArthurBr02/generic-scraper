@@ -111,13 +111,56 @@ class Scraper {
       
       // Export results if output is configured
       if (this.config.output && results.data) {
-        await this.exportResults(results.data);
+        // Préparer les données pour l'export
+        const exportData = this.prepareExportData(results.data);
+        await this.exportResults(exportData);
       }
       
       return results;
     } finally {
       await this.close();
     }
+  }
+
+  /**
+   * Prepare data for export
+   * Flattens the results.data structure to get actual data values
+   * @param {Object} data - Raw workflow data
+   * @returns {Array|Object} Data ready for export
+   */
+  prepareExportData(data) {
+    // Si data est vide, retourner objet vide
+    if (!data || Object.keys(data).length === 0) {
+      return {};
+    }
+
+    // Si data contient plusieurs clés, on fusionne les valeurs
+    const values = Object.values(data);
+    
+    // Si une seule valeur et c'est un tableau, le retourner tel quel
+    if (values.length === 1 && Array.isArray(values[0])) {
+      return values[0];
+    }
+    
+    // Si une seule valeur et c'est un objet, le retourner tel quel
+    if (values.length === 1 && typeof values[0] === 'object' && values[0] !== null) {
+      return values[0];
+    }
+    
+    // Si plusieurs valeurs, fusionner les objets ou créer un tableau
+    if (values.length > 1) {
+      // Si tous sont des objets, fusionner
+      if (values.every(v => typeof v === 'object' && !Array.isArray(v) && v !== null)) {
+        return Object.assign({}, ...values);
+      }
+      
+      // Si au moins un est un tableau, tout mettre dans un tableau
+      const flatValues = values.flat();
+      return flatValues.length === 1 ? flatValues[0] : flatValues;
+    }
+    
+    // Cas par défaut : retourner la première valeur
+    return values[0] || {};
   }
 
   /**

@@ -118,7 +118,7 @@ async function executeAction(page, step, context) {
     logger.info(`Action completed: ${stepLabel}`, { 
       type, 
       duration,
-      success: true 
+      success: true
     });
 
     return result;

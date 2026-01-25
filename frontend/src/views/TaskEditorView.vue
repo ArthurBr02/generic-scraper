@@ -69,7 +69,7 @@ export default defineComponent({
   },
 
   methods: {
-    ...mapActions(useWorkflowStore, ['loadWorkflow', 'setCurrentTask']),
+    ...mapActions(useWorkflowStore, ['loadWorkflow', 'setCurrentTask', 'reset']),
     ...mapActions(useNotificationStore, ['error'])
   },
 
@@ -84,13 +84,28 @@ export default defineComponent({
         if (task && task.config) {
           // Convertir la config en nodes et edges
           const { nodes, edges } = WorkflowConverter.fromConfig(task.config);
-          this.loadWorkflow({ nodes, edges });
+          // Passer aussi la config pour créer le bloc d'initialisation et le bloc output
+          this.loadWorkflow({ 
+            nodes, 
+            edges,
+            config: {
+              target: task.config.target,
+              browser: task.config.browser,
+              logging: task.config.logging,
+              errorHandling: task.config.errorHandling,
+              scheduling: task.config.scheduling,
+              output: task.config.output
+            }
+          });
           this.setCurrentTask(task.id, task.name);
         }
       } catch (err) {
         this.error(`Erreur lors du chargement du workflow: ${(err as Error).message}`);
         console.error('Erreur lors du chargement du workflow:', err);
       }
+    } else {
+      // Mode création : initialiser un nouveau workflow avec le bloc Init
+      this.reset();
     }
   }
 });

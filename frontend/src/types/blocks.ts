@@ -111,6 +111,7 @@ export interface BlockDefinition {
   description: string;
   icon: string;
   color: string;
+  disabled?: boolean; // Si true, le bloc n'apparaît pas dans la bibliothèque
   inputs: PortDefinition[];
   outputs: PortDefinition[];
   configSchema: ConfigSchema;

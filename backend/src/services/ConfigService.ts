@@ -256,12 +256,13 @@ class ConfigService {
     validateConfig(config: any): { valid: boolean; errors: string[] } {
         const errors: string[] = [];
 
-        // Support both v1 (workflow/url) and v2 (steps) formats
+        // Support v1 (workflow/url), v2 (steps), and v2.1 (workflows) formats
         const hasV1Format = config.url || config.workflow;
         const hasV2Format = config.steps;
+        const hasV2_1Format = config.workflows;
 
-        if (!hasV1Format && !hasV2Format) {
-            errors.push('Config must have either "url", "workflow" (v1) or "steps" (v2) property');
+        if (!hasV1Format && !hasV2Format && !hasV2_1Format) {
+            errors.push('Config must have either "url", "workflow" (v1), "steps" (v2) or "workflows" (v2.1) property');
         }
 
         if (config.workflow && !Array.isArray(config.workflow)) {
@@ -270,6 +271,10 @@ class ConfigService {
 
         if (config.steps && !Array.isArray(config.steps)) {
             errors.push('Steps must be an array');
+        }
+
+        if (config.workflows && !Array.isArray(config.workflows)) {
+            errors.push('Workflows must be an array');
         }
 
         return {

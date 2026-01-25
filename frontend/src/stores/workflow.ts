@@ -242,16 +242,169 @@ export const useWorkflowStore = defineStore('workflow', {
       this.isDirty = false;
       this.currentTaskId = null;
       this.currentTaskName = 'Workflow sans nom';
+      
+      // Ajouter automatiquement le bloc d'initialisation
+      this.addNode({
+        id: 'init-default',
+        type: 'custom',
+        position: { x: 100, y: 100 },
+        data: {
+          type: 'init',
+          label: 'Initialisation',
+          hasInput: false,
+          canDelete: false,
+          config: {
+            target: {
+              url: ''
+            },
+            browser: {
+              type: 'chromium',
+              headless: true,
+              timeout: 30000,
+              viewport: {
+                width: 1920,
+                height: 1080
+              }
+            },
+            logging: {
+              level: 'info',
+              console: true
+            },
+            errorHandling: {
+              retries: 3,
+              retryDelay: 1000,
+              screenshotOnError: true,
+              continueOnError: false
+            },
+            scheduling: {
+              enabled: false,
+              cron: '',
+              timezone: 'Europe/Paris'
+            },
+            output: {
+              format: 'json',
+              path: './output/data.json',
+              append: false,
+              createPath: true,
+              json: {
+                pretty: true
+              },
+              csv: {
+                delimiter: ',',
+                includeHeaders: true,
+                encoding: 'utf8'
+              }
+            }
+          }
+        }
+      });
+      
+      // Marquer comme non modifié après l'ajout du bloc par défaut
+      this.isDirty = false;
     },
 
     /**
      * Charge un workflow depuis un état
      */
-    loadWorkflow(state: { nodes: Node[]; edges: Edge[] }): void {
+    loadWorkflow(state: { nodes: Node[]; edges: Edge[]; config?: any }): void {
       this.nodes = state.nodes || [];
       this.edges = state.edges || [];
       this.selectedNodes = [];
       this.isDirty = false;
+      
+      // Vérifier si un bloc init existe déjà
+      const hasInitBlock = this.nodes.some(node => node.data?.type === 'init');
+      
+      // Si pas de bloc init et qu'on a une config, créer le bloc d'initialisation
+      if (!hasInitBlock) {
+        const config = state.config || {};
+        
+        // Décaler tous les nodes existants vers la droite pour faire de la place au bloc init
+        this.nodes.forEach(node => {
+          node.position.x += 350;
+        });
+        
+        // Trouver le premier node (celui le plus à gauche et en haut)
+        const firstNode = this.nodes.length > 0 
+          ? this.nodes.reduce((prev, curr) => {
+              if (curr.position.y < prev.position.y) return curr;
+              if (curr.position.y === prev.position.y && curr.position.x < prev.position.x) return curr;
+              return prev;
+            })
+          : null;
+        
+        this.nodes.unshift({
+          id: 'init-loaded',
+          type: 'custom',
+          position: { x: 100, y: 100 },
+          data: {
+            type: 'init',
+            label: 'Initialisation',
+            hasInput: false,
+            canDelete: false,
+            config: {
+              target: config.target || {
+                url: ''
+              },
+              browser: config.browser || {
+                type: 'chromium',
+                headless: true,
+                timeout: 30000,
+                viewport: {
+                  width: 1920,
+                  height: 1080
+                }
+              },
+              logging: config.logging || {
+                level: 'info',
+                console: true
+              },
+              errorHandling: config.errorHandling || {
+                retries: 3,
+                retryDelay: 1000,
+                screenshotOnError: true,
+                continueOnError: false
+              },
+              scheduling: config.scheduling || {
+                enabled: false,
+                cron: '',
+                timezone: 'Europe/Paris'
+              },
+              output: config.output || {
+                format: 'json',
+                path: './output/data.json',
+                append: false,
+                createPath: true,
+                json: {
+                  pretty: true
+                },
+                csv: {
+                  delimiter: ',',
+                  includeHeaders: true,
+                  encoding: 'utf8'
+                }
+              }
+            }
+          }
+        });
+        
+        // Connecter le bloc init au premier node
+        if (firstNode) {
+          this.edges.push({
+            id: `init-loaded-${firstNode.id}`,
+            source: 'init-loaded',
+            sourceHandle: null,
+            target: firstNode.id,
+            targetHandle: null,
+            type: 'custom',
+            animated: false,
+            data: {
+              type: 'flow',
+              state: 'normal'
+            }
+          });
+        }
+      }
     },
 
     /**

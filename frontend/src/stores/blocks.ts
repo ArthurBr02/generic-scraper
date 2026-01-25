@@ -30,7 +30,7 @@ export interface BlocksState {
 
 export const useBlocksStore = defineStore('blocks', {
   state: (): BlocksState => ({
-    blocks: blockDefinitions as any[]
+    blocks: blockDefinitions.filter(block => !block.disabled) as any[]
   }),
 
   getters: {
