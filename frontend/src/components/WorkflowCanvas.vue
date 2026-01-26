@@ -1,6 +1,7 @@
 <template>
   <div class="workflow-canvas-container">
     <VueFlow
+      :key="resetCounter"
       v-model:nodes="nodes"
       v-model:edges="edges"
       :class="['workflow-canvas', { dark: isDarkMode }]"
@@ -210,7 +211,7 @@ export default defineComponent({
   },
 
   computed: {
-    ...mapState(useWorkflowStore, ['selectedNodes', 'viewport']),
+    ...mapState(useWorkflowStore, ['selectedNodes', 'viewport', 'resetCounter']),
 
     nodes: {
       get(): Node[] {

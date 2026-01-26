@@ -63,6 +63,7 @@ export interface WorkflowState {
   currentTaskName: string;
   showInitialConfigPanel: boolean;
   initialConfig: InitialConfig;
+  resetCounter: number; // Compteur pour forcer la recréation de VueFlow
 }
 
 // Configuration pour la validation des connexions
@@ -86,6 +87,7 @@ export const useWorkflowStore = defineStore('workflow', {
     currentTaskId: null,
     currentTaskName: 'Workflow sans nom',
     showInitialConfigPanel: false,
+    resetCounter: 0,
     initialConfig: {
       target: {
         url: ''
@@ -333,6 +335,7 @@ export const useWorkflowStore = defineStore('workflow', {
       this.isDirty = false;
       this.currentTaskId = null;
       this.currentTaskName = 'Workflow sans nom';
+      this.resetCounter++; // Incrémenter pour forcer la recréation de VueFlow
       
       // Réinitialiser la configuration initiale avec les valeurs par défaut
       this.initialConfig = {
@@ -365,7 +368,7 @@ export const useWorkflowStore = defineStore('workflow', {
         },
         output: {
           format: 'json',
-          path: './output/data.json',
+          path: './output',
           append: false,
           createPath: true,
           json: {

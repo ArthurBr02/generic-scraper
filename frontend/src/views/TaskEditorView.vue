@@ -95,45 +95,61 @@ export default defineComponent({
     }
   },
 
+  watch: {
+    // Surveiller les changements de route pour réinitialiser le workflow
+    '$route.params.id': {
+      async handler(newId, oldId) {
+        // Uniquement si l'ID a réellement changé (évite les déclenchements inutiles)
+        if (newId !== oldId) {
+          await this.loadTaskWorkflow();
+        }
+      }
+    }
+  },
+
   methods: {
     ...mapActions(useWorkflowStore, ['loadWorkflow', 'setCurrentTask', 'reset', 'openInitialConfigPanel']),
-    ...mapActions(useNotificationStore, ['error'])
+    ...mapActions(useNotificationStore, ['error']),
+
+    async loadTaskWorkflow() {
+      // TOUJOURS réinitialiser le store à chaque chargement
+      this.reset();
+      
+      // Charge le workflow existant si en mode édition
+      if (this.isEditMode) {
+        const taskId = this.$route.params.id as string;
+        try {
+          const tasksStore = useTasksStore();
+          const task = await tasksStore.fetchTask(taskId);
+          
+          if (task && task.config) {
+            // Convertir la config en nodes et edges
+            const { nodes, edges } = WorkflowConverter.fromConfig(task.config);
+            // Passer aussi la config pour créer le bloc d'initialisation et le bloc output
+            this.loadWorkflow({ 
+              nodes, 
+              edges,
+              config: {
+                target: task.config.target,
+                browser: task.config.browser,
+                logging: task.config.logging,
+                errorHandling: task.config.errorHandling,
+                scheduling: task.config.scheduling,
+                output: task.config.output
+              }
+            });
+            this.setCurrentTask(task.id, task.name);
+          }
+        } catch (err) {
+          this.error(`Erreur lors du chargement du workflow: ${(err as Error).message}`);
+          console.error('Erreur lors du chargement du workflow:', err);
+        }
+      }
+    }
   },
 
   async mounted() {
-    // Charge le workflow existant si en mode édition
-    if (this.isEditMode) {
-      const taskId = this.$route.params.id as string;
-      try {
-        const tasksStore = useTasksStore();
-        const task = await tasksStore.fetchTask(taskId);
-        
-        if (task && task.config) {
-          // Convertir la config en nodes et edges
-          const { nodes, edges } = WorkflowConverter.fromConfig(task.config);
-          // Passer aussi la config pour créer le bloc d'initialisation et le bloc output
-          this.loadWorkflow({ 
-            nodes, 
-            edges,
-            config: {
-              target: task.config.target,
-              browser: task.config.browser,
-              logging: task.config.logging,
-              errorHandling: task.config.errorHandling,
-              scheduling: task.config.scheduling,
-              output: task.config.output
-            }
-          });
-          this.setCurrentTask(task.id, task.name);
-        }
-      } catch (err) {
-        this.error(`Erreur lors du chargement du workflow: ${(err as Error).message}`);
-        console.error('Erreur lors du chargement du workflow:', err);
-      }
-    } else {
-      // Mode création : initialiser un nouveau workflow avec le bloc Init
-      this.reset();
-    }
+    await this.loadTaskWorkflow();
   }
 });
 </script>

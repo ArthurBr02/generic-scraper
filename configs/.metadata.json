@@ -51,5 +51,14 @@
     "createdAt": "2026-01-26T20:30:37.215Z",
     "updatedAt": "2026-01-26T20:52:37.372Z",
     "runCount": 0
+  },
+  "8009a63f-10be-436e-9e85-87a5bf8ad256": {
+    "id": "8009a63f-10be-436e-9e85-87a5bf8ad256",
+    "name": "test import config",
+    "description": "",
+    "configFile": "8009a63f-10be-436e-9e85-87a5bf8ad256.json",
+    "createdAt": "2026-01-26T21:15:27.448Z",
+    "updatedAt": "2026-01-26T21:15:27.448Z",
+    "runCount": 0
   }
 }
