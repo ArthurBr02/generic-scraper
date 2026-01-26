@@ -208,7 +208,7 @@ export default defineComponent({
   },
 
   computed: {
-    ...mapState(useWorkflowStore, ['nodes', 'edges', 'isDirty', 'currentTaskId', 'currentTaskName']),
+    ...mapState(useWorkflowStore, ['nodes', 'edges', 'isDirty', 'currentTaskId', 'currentTaskName', 'initialConfig']),
     
     workflowName: {
       get(): string {
@@ -301,7 +301,8 @@ export default defineComponent({
         const config = WorkflowConverter.toConfig(
           this.nodes,
           this.edges,
-          this.metadata
+          this.metadata,
+          this.initialConfig
         );
 
         // Valider
@@ -339,7 +340,8 @@ export default defineComponent({
         const config = WorkflowConverter.toConfig(
           this.nodes,
           this.edges,
-          { name: this.workflowName || 'workflow' }
+          { name: this.workflowName || 'workflow' },
+          this.initialConfig
         );
 
         this.validationErrors = WorkflowConverter.validate(config);
@@ -354,7 +356,8 @@ export default defineComponent({
         const config = WorkflowConverter.toConfig(
           this.nodes,
           this.edges,
-          { name: this.workflowName || 'workflow', description: '' }
+          { name: this.workflowName || 'workflow', description: '' },
+          this.initialConfig
         );
 
         const tasksStore = useTasksStore();

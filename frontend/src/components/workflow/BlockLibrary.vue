@@ -110,9 +110,7 @@ export default defineComponent({
     categories(): CategoryGroup[] {
       const categoryMap = new Map<string, BlockDefinition[]>();
       
-      // Filtrer le bloc 'init' qui ne doit pas être dans la bibliothèque
       blockDefinitions
-        .filter(block => block.type !== 'init')
         .filter(block => !block.disabled)
         .forEach(block => {
           if (!categoryMap.has(block.category)) {

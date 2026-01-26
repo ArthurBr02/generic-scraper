@@ -7,6 +7,51 @@ export enum PortType {
   DATA = 'data'
 }
 
+// Configuration initiale du workflow
+export interface InitialConfig {
+  target: {
+    url: string;
+  };
+  browser: {
+    type: string;
+    headless: boolean;
+    timeout: number;
+    viewport: {
+      width: number;
+      height: number;
+    };
+  };
+  logging: {
+    level: string;
+    console: boolean;
+  };
+  errorHandling: {
+    retries: number;
+    retryDelay: number;
+    screenshotOnError: boolean;
+    continueOnError: boolean;
+  };
+  scheduling: {
+    enabled: boolean;
+    cron: string;
+    timezone: string;
+  };
+  output: {
+    format: string;
+    path: string;
+    append: boolean;
+    createPath: boolean;
+    json?: {
+      pretty: boolean;
+    };
+    csv?: {
+      delimiter: string;
+      includeHeaders: boolean;
+      encoding: string;
+    };
+  };
+}
+
 // État du workflow
 export interface WorkflowState {
   nodes: Node[];
@@ -16,6 +61,8 @@ export interface WorkflowState {
   isDirty: boolean;
   currentTaskId: string | null;
   currentTaskName: string;
+  showInitialConfigPanel: boolean;
+  initialConfig: InitialConfig;
 }
 
 // Configuration pour la validation des connexions
@@ -37,7 +84,51 @@ export const useWorkflowStore = defineStore('workflow', {
     },
     isDirty: false,
     currentTaskId: null,
-    currentTaskName: 'Workflow sans nom'
+    currentTaskName: 'Workflow sans nom',
+    showInitialConfigPanel: false,
+    initialConfig: {
+      target: {
+        url: ''
+      },
+      browser: {
+        type: 'chromium',
+        headless: true,
+        timeout: 30000,
+        viewport: {
+          width: 1920,
+          height: 1080
+        }
+      },
+      logging: {
+        level: 'info',
+        console: true
+      },
+      errorHandling: {
+        retries: 3,
+        retryDelay: 1000,
+        screenshotOnError: true,
+        continueOnError: false
+      },
+      scheduling: {
+        enabled: false,
+        cron: '',
+        timezone: 'Europe/Paris'
+      },
+      output: {
+        format: 'json',
+        path: './output',
+        append: false,
+        createPath: true,
+        json: {
+          pretty: true
+        },
+        csv: {
+          delimiter: ',',
+          includeHeaders: true,
+          encoding: 'utf8'
+        }
+      }
+    }
   }),
 
   getters: {
@@ -243,64 +334,50 @@ export const useWorkflowStore = defineStore('workflow', {
       this.currentTaskId = null;
       this.currentTaskName = 'Workflow sans nom';
       
-      // Ajouter automatiquement le bloc d'initialisation
-      this.addNode({
-        id: 'init-default',
-        type: 'custom',
-        position: { x: 100, y: 100 },
-        data: {
-          type: 'init',
-          label: 'Initialisation',
-          hasInput: false,
-          canDelete: false,
-          config: {
-            target: {
-              url: ''
-            },
-            browser: {
-              type: 'chromium',
-              headless: true,
-              timeout: 30000,
-              viewport: {
-                width: 1920,
-                height: 1080
-              }
-            },
-            logging: {
-              level: 'info',
-              console: true
-            },
-            errorHandling: {
-              retries: 3,
-              retryDelay: 1000,
-              screenshotOnError: true,
-              continueOnError: false
-            },
-            scheduling: {
-              enabled: false,
-              cron: '',
-              timezone: 'Europe/Paris'
-            },
-            output: {
-              format: 'json',
-              path: './output/data.json',
-              append: false,
-              createPath: true,
-              json: {
-                pretty: true
-              },
-              csv: {
-                delimiter: ',',
-                includeHeaders: true,
-                encoding: 'utf8'
-              }
-            }
+      // Réinitialiser la configuration initiale avec les valeurs par défaut
+      this.initialConfig = {
+        target: {
+          url: ''
+        },
+        browser: {
+          type: 'chromium',
+          headless: true,
+          timeout: 30000,
+          viewport: {
+            width: 1920,
+            height: 1080
+          }
+        },
+        logging: {
+          level: 'info',
+          console: true
+        },
+        errorHandling: {
+          retries: 3,
+          retryDelay: 1000,
+          screenshotOnError: true,
+          continueOnError: false
+        },
+        scheduling: {
+          enabled: false,
+          cron: '',
+          timezone: 'Europe/Paris'
+        },
+        output: {
+          format: 'json',
+          path: './output/data.json',
+          append: false,
+          createPath: true,
+          json: {
+            pretty: true
+          },
+          csv: {
+            delimiter: ',',
+            includeHeaders: true,
+            encoding: 'utf8'
           }
         }
-      });
-      
-      // Marquer comme non modifié après l'ajout du bloc par défaut
-      this.isDirty = false;
+      };
     },
 
     /**
@@ -312,98 +389,9 @@ export const useWorkflowStore = defineStore('workflow', {
       this.selectedNodes = [];
       this.isDirty = false;
       
-      // Vérifier si un bloc init existe déjà
-      const hasInitBlock = this.nodes.some(node => node.data?.type === 'init');
-      
-      // Si pas de bloc init et qu'on a une config, créer le bloc d'initialisation
-      if (!hasInitBlock) {
-        const config = state.config || {};
-        
-        // Décaler tous les nodes existants vers la droite pour faire de la place au bloc init
-        this.nodes.forEach(node => {
-          node.position.x += 350;
-        });
-        
-        // Trouver le premier node (celui le plus à gauche et en haut)
-        const firstNode = this.nodes.length > 0 
-          ? this.nodes.reduce((prev, curr) => {
-              if (curr.position.y < prev.position.y) return curr;
-              if (curr.position.y === prev.position.y && curr.position.x < prev.position.x) return curr;
-              return prev;
-            })
-          : null;
-        
-        this.nodes.unshift({
-          id: 'init-loaded',
-          type: 'custom',
-          position: { x: 100, y: 100 },
-          data: {
-            type: 'init',
-            label: 'Initialisation',
-            hasInput: false,
-            canDelete: false,
-            config: {
-              target: config.target || {
-                url: ''
-              },
-              browser: config.browser || {
-                type: 'chromium',
-                headless: true,
-                timeout: 30000,
-                viewport: {
-                  width: 1920,
-                  height: 1080
-                }
-              },
-              logging: config.logging || {
-                level: 'info',
-                console: true
-              },
-              errorHandling: config.errorHandling || {
-                retries: 3,
-                retryDelay: 1000,
-                screenshotOnError: true,
-                continueOnError: false
-              },
-              scheduling: config.scheduling || {
-                enabled: false,
-                cron: '',
-                timezone: 'Europe/Paris'
-              },
-              output: config.output || {
-                format: 'json',
-                path: './output/data.json',
-                append: false,
-                createPath: true,
-                json: {
-                  pretty: true
-                },
-                csv: {
-                  delimiter: ',',
-                  includeHeaders: true,
-                  encoding: 'utf8'
-                }
-              }
-            }
-          }
-        });
-        
-        // Connecter le bloc init au premier node
-        if (firstNode) {
-          this.edges.push({
-            id: `init-loaded-${firstNode.id}`,
-            source: 'init-loaded',
-            sourceHandle: null,
-            target: firstNode.id,
-            targetHandle: null,
-            type: 'custom',
-            animated: false,
-            data: {
-              type: 'flow',
-              state: 'normal'
-            }
-          });
-        }
+      // Charger la configuration initiale si elle est fournie
+      if (state.config) {
+        this.loadInitialConfig(state.config);
       }
     },
 
@@ -448,6 +436,38 @@ export const useWorkflowStore = defineStore('workflow', {
       // Pour 'type-match', il faudra vérifier les types de données
       // Cette logique sera implémentée plus tard
       return true;
+    },
+
+    /**
+     * Ouvre le panneau de configuration initiale
+     */
+    openInitialConfigPanel(): void {
+      this.showInitialConfigPanel = true;
+    },
+
+    /**
+     * Ferme le panneau de configuration initiale
+     */
+    closeInitialConfigPanel(): void {
+      this.showInitialConfigPanel = false;
+    },
+
+    /**
+     * Met à jour la configuration initiale
+     */
+    updateInitialConfig(config: Partial<InitialConfig>): void {
+      this.initialConfig = { ...this.initialConfig, ...config };
+      this.isDirty = true;
+    },
+
+    /**
+     * Charge la configuration initiale depuis un objet de configuration
+     */
+    loadInitialConfig(config: Partial<InitialConfig>): void {
+      this.initialConfig = {
+        ...this.initialConfig,
+        ...config
+      };
     }
   }
 });

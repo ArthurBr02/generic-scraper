@@ -43,6 +43,7 @@ export const blockDefinitions: BlockDefinition[] = [
     description: 'Configuration globale du scraper',
     icon: categoryIcons.config,
     color: categoryColors.config,
+    disabled: true, // Désactivé pour ne pas apparaître dans la bibliothèque
     inputs: [],
     outputs: [
       {

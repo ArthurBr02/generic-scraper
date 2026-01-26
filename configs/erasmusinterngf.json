@@ -1,6 +1,6 @@
 {
   "$schema": "../../src/schemas/workflow.schema.json",
-  "name": "erasmusintern  ",
+  "name": "erasmusinterngf",
   "description": "",
   "version": "1.0.0",
   "target": {

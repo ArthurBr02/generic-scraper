@@ -42,20 +42,9 @@
 
       <!-- Template pour les nœuds personnalisés -->
       <template #node-custom="{ data, id }">
-        <!-- Nœud de type Init -->
-        <InitNode
-          v-if="data.type === 'init'"
-          :id="id"
-          :data="data"
-          :selected="isNodeSelected(id)"
-          :color="getBlockColor(data.type)"
-          :icon="getBlockIcon(data.type)"
-          @context-menu="showNodeContextMenu($event, id)"
-        />
-
         <!-- Nœud de type Loop -->
         <LoopNode
-          v-else-if="data.type === 'loop'"
+          v-if="data.type === 'loop'"
           :id="id"
           :data="data"
           :selected="isNodeSelected(id)"

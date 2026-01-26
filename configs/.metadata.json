@@ -10,10 +10,10 @@
   },
   "erasmusintern": {
     "id": "erasmusintern",
-    "name": "erasmusintern",
+    "name": "erasmusinterngf",
     "configFile": "erasmusintern.json",
     "createdAt": "2026-01-23T16:04:14.774Z",
-    "updatedAt": "2026-01-25T14:14:34.138Z",
+    "updatedAt": "2026-01-26T20:14:03.507Z",
     "runCount": 0,
     "description": ""
   },
@@ -32,6 +32,24 @@
     "configFile": "erasmusintern.bkp.json",
     "createdAt": "2026-01-25T14:15:26.608Z",
     "updatedAt": "2026-01-25T14:15:26.608Z",
+    "runCount": 0
+  },
+  "erasmusinterngf": {
+    "id": "erasmusinterngf",
+    "name": "erasmusinterngf",
+    "description": "",
+    "configFile": "erasmusinterngf.json",
+    "createdAt": "2026-01-26T20:26:11.818Z",
+    "updatedAt": "2026-01-26T20:26:11.818Z",
+    "runCount": 0
+  },
+  "0a541101-ab20-4286-a697-1aa59b00e25f": {
+    "id": "0a541101-ab20-4286-a697-1aa59b00e25f",
+    "name": "gfdgfdgfd",
+    "description": "",
+    "configFile": "0a541101-ab20-4286-a697-1aa59b00e25f.json",
+    "createdAt": "2026-01-26T20:30:37.215Z",
+    "updatedAt": "2026-01-26T20:52:37.372Z",
     "runCount": 0
   }
 }
