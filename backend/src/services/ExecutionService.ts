@@ -453,7 +453,7 @@ export class ExecutionService extends EventEmitter {
                 : null;
 
             // Insérer ou mettre à jour l'exécution
-            await databaseService.run(
+            await databaseService.executeRun(
                 `INSERT OR REPLACE INTO executions 
                 (id, task_id, task_name, status, started_at, completed_at, duration_ms, items_extracted, error_message, output_file)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -473,7 +473,7 @@ export class ExecutionService extends EventEmitter {
 
             // Sauvegarder les logs (seulement les nouveaux)
             // Récupérer le nombre de logs déjà sauvegardés
-            const existingLogsCount = await databaseService.get(
+            const existingLogsCount = await databaseService.executeGet(
                 'SELECT COUNT(*) as count FROM execution_logs WHERE execution_id = ?',
                 [execution.id]
             );
@@ -482,7 +482,7 @@ export class ExecutionService extends EventEmitter {
             // Insérer seulement les nouveaux logs
             for (let i = savedCount; i < execution.logs.length; i++) {
                 const log = execution.logs[i];
-                await databaseService.run(
+                await databaseService.executeRun(
                     `INSERT INTO execution_logs (execution_id, timestamp, level, message, metadata, workflow_id)
                     VALUES (?, ?, ?, ?, ?, ?)`,
                     [
@@ -506,7 +506,7 @@ export class ExecutionService extends EventEmitter {
                             continue;
                         }
                         
-                        await databaseService.run(
+                        await databaseService.executeRun(
                             `INSERT OR REPLACE INTO execution_data (execution_id, workflow_id, data_key, data_value, item_count)
                             VALUES (?, ?, ?, ?, ?)`,
                             [

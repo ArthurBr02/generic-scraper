@@ -134,6 +134,16 @@
                     Voir
                   </button>
                   <button
+                    v-if="execution.output_file"
+                    @click="downloadFile(execution.id)"
+                    class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 mr-3"
+                    title="Télécharger le fichier exporté"
+                  >
+                    <svg class="h-5 w-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                  </button>
+                  <button
                     @click="deleteExecution(execution.id)"
                     class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
                   >
@@ -193,6 +203,19 @@
               <p class="text-sm text-red-700 dark:text-red-300">{{ selectedExecution.error_message }}</p>
             </div>
 
+            <!-- Bouton de téléchargement du fichier -->
+            <div v-if="selectedExecution.output_file" class="flex justify-center">
+              <button
+                @click="downloadFile(selectedExecution.id)"
+                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+              >
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Télécharger le fichier exporté
+              </button>
+            </div>
+
             <!-- Logs -->
             <div v-if="selectedExecution.logs && selectedExecution.logs.length > 0">
               <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-2">Logs</h4>
@@ -232,6 +255,7 @@ interface Execution {
   duration_ms?: number;
   items_extracted?: number;
   error_message?: string;
+  output_file?: string;
   logs?: any[];
 }
 
@@ -319,6 +343,42 @@ export default defineComponent({
         console.error('Error deleting execution:', error);
         const notificationStore = useNotificationStore();
         notificationStore.showNotification('Erreur lors de la suppression', 'error');
+      }
+    },
+
+    async downloadFile(executionId: string): Promise<void> {
+      try {
+        const response = await axios.get(`/api/executions/${executionId}/download`, {
+          responseType: 'blob'
+        });
+        
+        // Créer un lien de téléchargement
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        
+        // Extraire le nom du fichier depuis les headers ou utiliser un nom par défaut
+        const contentDisposition = response.headers['content-disposition'];
+        let fileName = `execution-${executionId}.json`;
+        if (contentDisposition) {
+          const matches = /filename="(.+)"/.exec(contentDisposition);
+          if (matches && matches[1]) {
+            fileName = matches[1];
+          }
+        }
+        
+        link.setAttribute('download', fileName);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+        
+        const notificationStore = useNotificationStore();
+        notificationStore.showNotification('Fichier téléchargé', 'success');
+      } catch (error: any) {
+        console.error('Error downloading file:', error);
+        const notificationStore = useNotificationStore();
+        notificationStore.showNotification('Erreur lors du téléchargement', 'error');
       }
     },
 

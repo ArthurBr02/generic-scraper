@@ -456,6 +456,34 @@ export class DatabaseService {
   // ============================================
 
   /**
+   * Execute a SQL query (public wrapper for run)
+   */
+  async executeRun(sql: string, params?: any[]): Promise<any> {
+    return this.run(sql, ...(params || []));
+  }
+
+  /**
+   * Get a single row (public wrapper for get)
+   */
+  async executeGet(sql: string, params?: any[]): Promise<any> {
+    return this.get(sql, ...(params || []));
+  }
+
+  /**
+   * Get all rows (public wrapper for all)
+   */
+  async executeAll(sql: string, params?: any[]): Promise<any[]> {
+    return this.all(sql, ...(params || []));
+  }
+
+  /**
+   * Execute SQL script (public wrapper for exec)
+   */
+  async executeExec(sql: string): Promise<void> {
+    return this.exec(sql);
+  }
+
+  /**
    * Close database connection
    */
   async close(): Promise<void> {

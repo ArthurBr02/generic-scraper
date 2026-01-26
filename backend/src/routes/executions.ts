@@ -35,7 +35,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
         params.push(parseInt(limit as string), parseInt(offset as string));
 
         logger.debug('Fetching executions', { query, params });
-        const executions = await databaseService.all(query, params);
+        const executions = await databaseService.executeAll(query, params);
         logger.info(`Found ${executions.length} executions in database`);
         
         // Les exécutions sont déjà au bon format (snake_case) depuis la BDD
@@ -60,7 +60,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
         const { id } = req.params;
 
         // Récupérer l'exécution
-        const execution = await databaseService.get(
+        const execution = await databaseService.executeGet(
             'SELECT * FROM executions WHERE id = ?',
             [id]
         );
@@ -73,7 +73,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
         }
 
         // Récupérer les logs et reformater
-        const logsRows = await databaseService.all(
+        const logsRows = await databaseService.executeAll(
             'SELECT * FROM execution_logs WHERE execution_id = ? ORDER BY timestamp ASC',
             [id]
         );
@@ -86,7 +86,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
         }));
 
         // Récupérer les données et reformater par workflow
-        const dataRows = await databaseService.all(
+        const dataRows = await databaseService.executeAll(
             'SELECT * FROM execution_data WHERE execution_id = ?',
             [id]
         );
@@ -128,7 +128,7 @@ router.get('/task/:taskId/stats', async (req: Request, res: Response, next: Next
     try {
         const { taskId } = req.params;
 
-        const stats = await databaseService.get(
+        const stats = await databaseService.executeGet(
             `SELECT 
                 COUNT(*) as total_runs,
                 SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as success_count,
@@ -177,7 +177,7 @@ router.delete('/:id', async (req: Request, res: Response, next: NextFunction) =>
     try {
         const { id } = req.params;
 
-        await databaseService.run('DELETE FROM executions WHERE id = ?', [id]);
+        await databaseService.executeRun('DELETE FROM executions WHERE id = ?', [id]);
 
         res.json({
             success: true,
@@ -185,6 +185,57 @@ router.delete('/:id', async (req: Request, res: Response, next: NextFunction) =>
         });
     } catch (error: any) {
         logger.error('Error deleting execution', { error: error.message, executionId: req.params.id });
+        next(error);
+    }
+});
+
+/**
+ * GET /api/executions/:id/download
+ * Télécharge le fichier d'export d'une exécution
+ */
+router.get('/:id/download', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params;
+        
+        // Récupérer l'exécution pour obtenir le chemin du fichier
+        const execution = await databaseService.executeGet('SELECT output_file FROM executions WHERE id = ?', [id]);
+        
+        if (!execution || !execution.output_file) {
+            return res.status(404).json({
+                success: false,
+                error: 'Fichier non trouvé ou exécution sans fichier exporté'
+            });
+        }
+
+        const fs = await import('fs/promises');
+        const path = await import('path');
+        
+        // Vérifier que le fichier existe
+        const filePath = execution.output_file;
+        try {
+            await fs.access(filePath);
+        } catch {
+            return res.status(404).json({
+                success: false,
+                error: 'Fichier introuvable sur le serveur'
+            });
+        }
+
+        // Déterminer le type MIME
+        const ext = path.extname(filePath).toLowerCase();
+        const mimeType = ext === '.csv' ? 'text/csv' : 'application/json';
+        
+        // Envoyer le fichier
+        const fileName = path.basename(filePath);
+        res.setHeader('Content-Type', mimeType);
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+        
+        const fileContent = await fs.readFile(filePath);
+        res.send(fileContent);
+        
+        logger.info(`File downloaded`, { executionId: id, filePath });
+    } catch (error: any) {
+        logger.error('Error downloading file', { error: error.message, executionId: req.params.id });
         next(error);
     }
 });
