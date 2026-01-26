@@ -12,12 +12,14 @@ class Scraper {
   /**
    * Create a scraper instance
    * @param {Object} config - Full scraper configuration
+   * @param {Function} onProgress - Progress callback function
    */
-  constructor(config) {
+  constructor(config, onProgress) {
     this.config = config;
     this.logger = getLogger();
     this.browser = null;
     this.workflow = null;
+    this.onProgress = onProgress || null;
   }
 
   /**
@@ -50,17 +52,27 @@ class Scraper {
       const page = await this.browser.newPage();
 
       // Load workflow configuration
-      const workflowConfig = this.config.workflow || { 
-        name: 'default', 
-        steps: [] 
-      };
+      // Support both 'workflow' (single) and 'workflows' (array) formats
+      let workflowConfig;
+      if (this.config.workflows && Array.isArray(this.config.workflows) && this.config.workflows.length > 0) {
+        workflowConfig = this.config.workflows[0]; // Use first workflow
+        this.logger.info(`Using workflow: ${workflowConfig.name || 'default'}`);
+      } else if (this.config.workflow) {
+        workflowConfig = this.config.workflow;
+      } else {
+        workflowConfig = { 
+          name: 'default', 
+          steps: [] 
+        };
+      }
 
       // Create workflow context
       const context = {
         logger: this.logger,
         config: this.config,
         browser: this.browser,
-        target: this.config.target || {}
+        target: this.config.target || {},
+        onProgress: this.onProgress
       };
 
       // Create and execute workflow
@@ -107,12 +119,16 @@ class Scraper {
       const results = await this.run();
       
       // Log pour debug
-      this.logger.info('📦 Workflow results.data keys:', Object.keys(results.data || {}));
+      const dataKeys = Object.keys(results.data || {});
+      this.logger.info(`📦 Workflow results.data has ${dataKeys.length} keys: ${dataKeys.join(', ')}`);
       
       // Export results if output is configured
       if (this.config.output && results.data) {
         // Préparer les données pour l'export
         const exportData = this.prepareExportData(results.data);
+        const exportType = Array.isArray(exportData) ? `array[${exportData.length}]` : typeof exportData;
+        const exportInfo = Array.isArray(exportData) ? `array with ${exportData.length} items` : `object with keys: ${Object.keys(exportData).join(', ')}`;
+        this.logger.info(`📦 Export data is ${exportType}: ${exportInfo}`);
         await this.exportResults(exportData);
       }
       
@@ -125,6 +141,7 @@ class Scraper {
   /**
    * Prepare data for export
    * Flattens the results.data structure to get actual data values
+   * Filters out numeric keys (pagination results) to avoid duplicates
    * @param {Object} data - Raw workflow data
    * @returns {Array|Object} Data ready for export
    */
@@ -134,8 +151,18 @@ class Scraper {
       return {};
     }
 
-    // Si data contient plusieurs clés, on fusionne les valeurs
-    const values = Object.values(data);
+    // Filtrer les clés numériques (résultats de pagination) pour éviter les doublons
+    const filteredData = {};
+    for (const [key, value] of Object.entries(data)) {
+      // Ignorer les clés numériques (0, 1, 2, etc.)
+      if (!/^\d+$/.test(key)) {
+        filteredData[key] = value;
+      }
+    }
+
+    // Si aucune donnée après filtrage, retourner les données brutes (fallback)
+    const finalData = Object.keys(filteredData).length > 0 ? filteredData : data;
+    const values = Object.values(finalData);
     
     // Si une seule valeur et c'est un tableau, le retourner tel quel
     if (values.length === 1 && Array.isArray(values[0])) {

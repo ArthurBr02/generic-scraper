@@ -140,6 +140,6 @@ vite.config.ts.timestamp-*
 
 output/*
 
-data/scraper.db
+data/scraper.db*
 
 */.vscode/

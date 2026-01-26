@@ -1,37 +1,46 @@
-FROM node:20-alpine
+FROM node:20
 
 WORKDIR /app
 
-# Install build tools for native dependencies (sqlite3) and Playwright dependencies
-RUN apk add --no-cache \
-    python3 \
-    make \
-    g++ \
-    chromium \
-    nss \
-    freetype \
-    harfbuzz \
-    ca-certificates \
-    ttf-freefont
+# Copy backend package files
+COPY ./backend/package*.json ./
 
-# Set Playwright to use system chromium
-ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
-ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser
-
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies (use npm install to update lockfile with new deps)
+# Install backend dependencies
 RUN npm install
 
-# Copy source code
-COPY . .
+# Install Playwright browsers and system dependencies for backend
+RUN npx playwright install --with-deps chromium
+
+# Create scraper-engine directory
+RUN mkdir -p /app/scraper-engine
+
+# Copy scraper-engine files from project root
+COPY ./package.json /app/scraper-engine/package.json
+COPY ./src /app/scraper-engine/src
+COPY ./data /app/scraper-engine/data
+
+# Install scraper-engine dependencies
+WORKDIR /app/scraper-engine
+RUN npm install
+
+# Install Playwright browsers for scraper-engine
+RUN npx playwright install chromium
+
+# Return to app directory
+WORKDIR /app
+
+# Copy backend source code
+COPY ./backend .
 
 # Create necessary directories
 RUN mkdir -p /app/configs /app/logs /app/output /app/data
 
+# Copy startup script
+COPY ./backend/start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
 # Expose port
 EXPOSE 4000
 
-# Start development server with tsx watch
-CMD ["npm", "run", "dev"]
+# Start with custom script that checks Playwright installation
+CMD ["/app/start.sh"]

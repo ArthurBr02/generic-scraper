@@ -53,7 +53,8 @@ export type FieldType =
   | 'code'
   | 'keyvalue'
   | 'array'
-  | 'fieldList';  // Liste de champs dynamiques avec sous-schéma
+  | 'fieldList'  // Liste de champs dynamiques avec sous-schéma
+  | 'output';    // Champ de sauvegarde/export (saveAs ou output)
 
 /**
  * Règle de validation

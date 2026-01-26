@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS execution_logs (
   message TEXT NOT NULL,
   step_id TEXT,                           -- ID de l'étape du workflow
   step_name TEXT,                         -- Nom de l'étape
+  workflow_id TEXT DEFAULT 'main',        -- ID du workflow
   metadata TEXT,                          -- JSON avec données supplémentaires
   FOREIGN KEY (execution_id) REFERENCES executions(id) ON DELETE CASCADE
 );
@@ -52,7 +53,9 @@ CREATE INDEX IF NOT EXISTS idx_execution_logs_level ON execution_logs(level);
 CREATE TABLE IF NOT EXISTS execution_data (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   execution_id TEXT NOT NULL,             -- Référence à executions.id
+  workflow_id TEXT DEFAULT 'main',        -- ID du workflow
   data_key TEXT NOT NULL,                 -- Clé de la donnée (ex: "products", "articles")
+  data_value TEXT,                        -- Valeur JSON complète
   data_type TEXT,                         -- Type: array, object, string, number
   item_count INTEGER,                     -- Nombre d'éléments si array
   sample_data TEXT,                       -- Échantillon JSON (premiers éléments)
@@ -61,6 +64,7 @@ CREATE TABLE IF NOT EXISTS execution_data (
 );
 
 CREATE INDEX IF NOT EXISTS idx_execution_data_execution_id ON execution_data(execution_id);
+CREATE INDEX IF NOT EXISTS idx_execution_data_workflow_id ON execution_data(workflow_id);
 
 -- ============================================
 -- Table: tasks_metadata

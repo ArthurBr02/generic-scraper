@@ -36,6 +36,14 @@ const routes: Array<RouteRecordRaw> = [
     }
   },
   {
+    path: '/executions',
+    name: 'executions',
+    component: () => import('@/views/ExecutionHistoryView.vue'),
+    meta: {
+      title: 'Historique des exécutions'
+    }
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: '/'
   }

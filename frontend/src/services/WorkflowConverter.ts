@@ -96,8 +96,32 @@ export class WorkflowConverter {
       }
     });
 
+    // Identifier les nœuds qui doivent avoir un ID (référencés dans repeatSteps)
+    const nodesNeedingIds = new Map<string, string>();
+    sortedNodes.forEach((node, index) => {
+      // Vérifier si ce nœud est référencé par une pagination
+      const isPaginationTarget = sortedNodes.some(n => {
+        if (n.data?.type === 'pagination' && n.data?.config?.repeatSteps) {
+          const repeatSteps = n.data.config.repeatSteps;
+          return Array.isArray(repeatSteps) && repeatSteps.length > 0;
+        }
+        return false;
+      });
+
+      // Si c'est une étape d'extraction qui précède une pagination, lui donner un ID
+      if (node.data?.type === 'extract') {
+        const nextNode = sortedNodes[index + 1];
+        if (nextNode?.data?.type === 'pagination') {
+          nodesNeedingIds.set(node.id, 'extract-data');
+        }
+      }
+    });
+
     // Convertir chaque nœud en étape (format simple sans id/name/next)
+    // IMPORTANT: Filtrer les nœuds qui font partie d'un corps de boucle
+    // pour ne pas les dupliquer
     const steps: any[] = sortedNodes
+      .filter(node => !loopBodyNodes.has(node.id))
       .map((node) => {
         const step: any = {
           type: node.data?.type || node.type || 'unknown',
@@ -105,12 +129,28 @@ export class WorkflowConverter {
           position: { x: node.position.x, y: node.position.y }
         };
 
-        // Ajouter l'output si défini
-        const outputValue = node.data?.output || node.data?.config?.output;
-        if (outputValue && outputValue.trim() !== '') {
-          step.output = outputValue;
-          delete step.config.output;
-          delete step.config.saveAs;
+        // Ajouter l'ID si nécessaire
+        if (nodesNeedingIds.has(node.id)) {
+          step.id = nodesNeedingIds.get(node.id);
+        }
+
+        // Gérer le nouveau format dataOutput { mode, value }
+        const dataOutput = node.data?.config?.dataOutput;
+        if (dataOutput && typeof dataOutput === 'object' && dataOutput.mode && dataOutput.value) {
+          if (dataOutput.mode === 'output') {
+            step.output = dataOutput.value;
+          } else if (dataOutput.mode === 'saveAs') {
+            step.saveAs = dataOutput.value;
+          }
+          delete step.config.dataOutput;
+        } else {
+          // Rétrocompatibilité: gérer l'ancien format avec output et saveAs séparés
+          const outputValue = node.data?.output || node.data?.config?.output;
+          if (outputValue && outputValue.trim() !== '') {
+            step.output = outputValue;
+            delete step.config.output;
+            delete step.config.saveAs;
+          }
         }
 
         // Pour les blocs loop, construire le tableau steps à partir des edges
@@ -202,12 +242,23 @@ export class WorkflowConverter {
         position: { x: node.position.x, y: node.position.y }
       };
 
-      // Ajouter l'output si défini
-      const outputValue = node.data?.output || node.data?.config?.output;
-      if (outputValue && outputValue.trim() !== '') {
-        step.output = outputValue;
-        delete step.config.output;
-        delete step.config.saveAs;
+      // Gérer le nouveau format dataOutput { mode, value }
+      const dataOutput = node.data?.config?.dataOutput;
+      if (dataOutput && typeof dataOutput === 'object' && dataOutput.mode && dataOutput.value) {
+        if (dataOutput.mode === 'output') {
+          step.output = dataOutput.value;
+        } else if (dataOutput.mode === 'saveAs') {
+          step.saveAs = dataOutput.value;
+        }
+        delete step.config.dataOutput;
+      } else {
+        // Rétrocompatibilité: gérer l'ancien format avec output et saveAs séparés
+        const outputValue = node.data?.output || node.data?.config?.output;
+        if (outputValue && outputValue.trim() !== '') {
+          step.output = outputValue;
+          delete step.config.output;
+          delete step.config.saveAs;
+        }
       }
 
       steps.push(step);
@@ -299,6 +350,21 @@ export class WorkflowConverter {
           posY = startY !== undefined ? startY + index * VERTICAL_SPACING : currentY + currentRow * VERTICAL_SPACING;
         }
 
+        // Convertir output/saveAs en dataOutput pour le nouveau format
+        const nodeConfig = { ...step.config };
+        let dataOutput = { mode: '', value: '' };
+        
+        if (step.output) {
+          dataOutput = { mode: 'output', value: step.output };
+        } else if (step.saveAs) {
+          dataOutput = { mode: 'saveAs', value: step.saveAs };
+        }
+        
+        // Ajouter dataOutput à la config si un mode est défini
+        if (dataOutput.mode) {
+          nodeConfig.dataOutput = dataOutput;
+        }
+
         nodes.push({
           id: nodeId,
           type: 'custom',
@@ -306,7 +372,7 @@ export class WorkflowConverter {
           data: {
             label: step.type,
             name: step.type,
-            config: { ...step.config },
+            config: nodeConfig,
             output: step.output,
             type: step.type,
             parentLoopId: parentLoopId

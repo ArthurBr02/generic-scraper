@@ -25,6 +25,15 @@ Guide complet pour naviguer dans toute la documentation du projet.
    - Scraping simple à complexe
    - Bonnes pratiques
 
+### 💡 Concepts clés
+
+4. **[SAVEAS_VS_OUTPUT.md](SAVEAS_VS_OUTPUT.md)** - 💾 saveAs vs 📤 output
+   - **⭐ IMPORTANT** : Comprendre la différence
+   - Tableau de décision rapide
+   - Exemples pratiques
+   - Cas d'usage détaillés
+   - Bonnes pratiques
+
 ---
 
 ## ⚙️ Configuration

@@ -8,6 +8,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { promisify } from 'util';
 import { fileURLToPath } from 'url';
+import { logger } from '../utils/logger.js';
 
 // Define __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -80,6 +81,30 @@ export class DatabaseService {
     const schemaPath = path.resolve(__dirname, '../../sql/schema.sql');
     const schema = fs.readFileSync(schemaPath, 'utf8');
     await this.exec(schema);
+    
+    // Run additional migrations
+    await this.runAdditionalMigrations();
+  }
+
+  /**
+   * Run additional migrations (column additions, etc.)
+   */
+  private async runAdditionalMigrations(): Promise<void> {
+    try {
+      // Check if workflow_id column exists in execution_logs
+      const columns = await this.all('PRAGMA table_info(execution_logs)');
+      const hasWorkflowId = columns.some((col: any) => col.name === 'workflow_id');
+      
+      if (!hasWorkflowId) {
+        logger.info('Adding workflow_id column to execution_logs table');
+        await this.run('ALTER TABLE execution_logs ADD COLUMN workflow_id TEXT DEFAULT \'main\'');
+        await this.run('CREATE INDEX IF NOT EXISTS idx_execution_logs_workflow_id ON execution_logs(workflow_id)');
+        logger.info('Migration completed: workflow_id column added');
+      }
+    } catch (error: any) {
+      // If table doesn't exist yet, it will be created by schema.sql
+      logger.warn('Migration check failed (table may not exist yet)', { error: error.message });
+    }
   }
 
   // ============================================

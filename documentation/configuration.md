@@ -2,6 +2,26 @@
 
 Ce document décrit tous les paramètres de configuration disponibles pour Generic Scraper.
 
+## ⚡ Référence rapide
+
+### `saveAs` vs `output` - Quelle différence ?
+
+| | `saveAs` | `output` |
+|---|----------|----------|
+| **Icône** | 💾 | 📤 |
+| **Stocké en interne** | ✅ | ✅ |
+| **Exporté dans fichier** | ❌ | ✅ |
+| **Usage** | Données temporaires/intermédiaires | Résultats finaux |
+| **Exemples** | URLs, IDs, tokens | Produits, articles |
+
+**Règle simple :**
+- 💾 **`saveAs`** = "J'ai besoin de ces données pour le workflow, mais je ne veux pas les voir dans le résultat final"
+- 📤 **`output`** = "Ce sont les données que je veux récupérer à la fin"
+
+[➡️ Voir la documentation complète](#-différence-entre-saveas-et-output)
+
+---
+
 ## Table des matières
 
 1. [Structure générale](#structure-générale)
@@ -182,7 +202,184 @@ Définit la séquence d'actions à exécuter.
 | `continueOnError` | boolean | Non | Continuer si le step échoue |
 | `retry` | object | Non | Configuration des retries |
 | `timeout` | number | Non | Timeout spécifique au step |
-| `saveAs` | string | Non | Nom de variable pour sauvegarder le résultat |
+| `saveAs` | string | Non | **💾 Sauvegarde interne uniquement** - Stocke le résultat dans `workflow.data` pour réutilisation sans l'exporter |
+| `output` | string | Non | **📤 Sauvegarde + export** - Stocke le résultat dans `workflow.data` ET l'exporte dans le fichier final |
+
+---
+
+## 💡 Différence entre `saveAs` et `output`
+
+### Résumé rapide
+
+| Critère | `saveAs` | `output` |
+|---------|----------|----------|
+| **Stockage interne** | ✅ Oui (dans `workflow.data`) | ✅ Oui (dans `workflow.data`) |
+| **Export fichier** | ❌ Non | ✅ Oui |
+| **Utilisation** | Données intermédiaires | Données finales |
+| **Exemples** | URLs, IDs, tokens, listes temporaires | Produits, articles, résultats complets |
+
+### `saveAs` - Données intermédiaires 💾
+
+**Quand l'utiliser ?**
+- Pour stocker des données qui seront **réutilisées** dans les étapes suivantes
+- Pour des données **temporaires** qui ne doivent pas apparaître dans le résultat final
+- Pour éviter de polluer le fichier de sortie avec des données techniques
+
+**Exemples d'usage :**
+- Liste d'URLs collectées via pagination (avant de les parcourir en boucle)
+- IDs de produits à récupérer
+- Tokens d'authentification
+- Données de configuration dynamiques
+
+**Exemple :**
+```json
+{
+  "type": "pagination",
+  "config": {
+    "type": "click",
+    "nextSelector": ".next-page",
+    "maxPages": 5,
+    "repeatSteps": ["extract-urls"]
+  },
+  "saveAs": "productUrls"  // ✅ URLs stockées dans workflow.data.productUrls
+                            // ❌ Mais PAS dans le fichier output/data.json
+}
+```
+
+Ensuite, vous pouvez utiliser ces données :
+```json
+{
+  "type": "loop",
+  "config": {
+    "items": "productUrls",  // ✅ Utilise les données de saveAs
+    "itemVar": "url",
+    "steps": [...]
+  }
+}
+```
+
+### `output` - Données finales 📤
+
+**Quand l'utiliser ?**
+- Pour les **résultats finaux** du scraping
+- Pour les données que vous voulez **exporter** dans le fichier JSON/CSV
+- Quand vous voulez à la fois stocker ET exporter les données
+
+**Exemples d'usage :**
+- Liste de produits scrapés
+- Articles de blog
+- Offres d'emploi
+- Résultats de recherche
+
+**Exemple :**
+```json
+{
+  "type": "extract",
+  "config": {
+    "container": ".product",
+    "multiple": true,
+    "fields": [
+      { "name": "title", "selector": ".title", "type": "text" },
+      { "name": "price", "selector": ".price", "type": "text" }
+    ]
+  },
+  "output": "products"  // ✅ Stocké dans workflow.data.products
+                        // ✅ ET exporté dans output/data.json
+}
+```
+
+Le fichier `output/data.json` contiendra :
+```json
+{
+  "products": [
+    { "title": "Produit 1", "price": "29.99€" },
+    { "title": "Produit 2", "price": "39.99€" }
+  ]
+}
+```
+
+### Cas d'usage combiné
+
+**Scénario :** Collecter des URLs de produits (pagination) puis extraire les détails de chaque produit.
+
+```json
+{
+  "workflows": [
+    {
+      "name": "main",
+      "steps": [
+        {
+          "id": "extract-urls",
+          "type": "extract",
+          "config": {
+            "container": ".product-item",
+            "multiple": true,
+            "fields": [
+              { "name": "url", "selector": "a", "type": "attribute", "attribute": "href" }
+            ]
+          }
+        },
+        {
+          "type": "pagination",
+          "config": {
+            "type": "click",
+            "nextSelector": ".next",
+            "maxPages": 10,
+            "repeatSteps": ["extract-urls"]
+          },
+          "saveAs": "productUrls"  // 💾 Sauvegarde interne uniquement
+        },
+        {
+          "type": "loop",
+          "config": {
+            "items": "productUrls",
+            "itemVar": "product",
+            "steps": [
+              {
+                "type": "navigate",
+                "config": { "url": "https://site.com{{product.url}}" }
+              },
+              {
+                "type": "extract",
+                "config": {
+                  "fields": [
+                    { "name": "title", "selector": ".title", "type": "text" },
+                    { "name": "price", "selector": ".price", "type": "text" },
+                    { "name": "description", "selector": ".desc", "type": "text" }
+                  ]
+                },
+                "output": "productDetails"  // 📤 Export final
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Résultat dans `output/data.json` :**
+```json
+{
+  "productDetails": [
+    {
+      "title": "Produit 1",
+      "price": "29.99€",
+      "description": "Description du produit 1"
+    },
+    {
+      "title": "Produit 2",
+      "price": "39.99€",
+      "description": "Description du produit 2"
+    }
+  ]
+}
+```
+
+> **Note :** Les `productUrls` ne sont PAS dans le fichier final car on a utilisé `saveAs`.
+
+---
 
 **Configuration des retries :**
 
@@ -200,6 +397,17 @@ Définit la séquence d'actions à exécuter.
 ---
 
 ## Actions disponibles
+
+> **💡 Actions supportant `saveAs` / `output` :**
+> - `extract` - Extraction de données
+> - `pagination` - Pagination (collecte de données sur plusieurs pages)
+> - `api` - Requêtes API
+> - `loop` - Boucles (collecte tous les résultats de toutes les itérations)
+> - `subWorkflow` - Sous-workflows
+>
+> Ces actions peuvent stocker leurs résultats avec `saveAs` (usage interne) ou `output` (export final).
+
+---
 
 ### 1. `navigate` - Navigation
 
@@ -493,6 +701,41 @@ Itère sur des éléments ou un tableau.
   }
 }
 ```
+
+**💡 Loop avec `saveAs` / `output` :**
+
+Le bloc `loop` lui-même peut avoir un `saveAs` ou `output` pour collecter tous les résultats de toutes les itérations :
+
+```json
+{
+  "type": "loop",
+  "config": {
+    "items": "productUrls",
+    "itemVar": "url",
+    "steps": [
+      {
+        "type": "navigate",
+        "config": { "url": "{{url}}" }
+      },
+      {
+        "type": "extract",
+        "config": {
+          "fields": [
+            { "name": "title", "selector": ".title", "type": "text" },
+            { "name": "price", "selector": ".price", "type": "text" }
+          ]
+        },
+        "output": "details"  // Résultat de CHAQUE itération
+      }
+    ]
+  },
+  "output": "allProducts"  // Collection de TOUS les résultats
+}
+```
+
+**Différence :**
+- `output` dans le step `extract` → Résultat d'une seule itération
+- `output` sur le bloc `loop` → Collection de tous les résultats de toutes les itérations
 
 ---
 
@@ -934,6 +1177,13 @@ Remplit automatiquement des formulaires complexes avec mapping intelligent des c
 ---
 
 ## Extracteurs
+
+> **💡 Conseil pour `saveAs` vs `output` dans les extracteurs :**
+> - Utilisez `saveAs` pour des données qui serviront dans le workflow (URLs à visiter, IDs, etc.)
+> - Utilisez `output` pour les résultats finaux que vous voulez dans le fichier de sortie
+> - Dans une même étape `extract`, vous pouvez utiliser soit l'un, soit l'autre, mais pas les deux
+
+---
 
 ### `text` - Texte
 

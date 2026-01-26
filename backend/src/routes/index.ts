@@ -1,7 +1,8 @@
 import { Router, Request, Response } from 'express';
-import scraperRoutes from './scraper';
-import databaseRoutes from './database';
-import tasksRoutes from './tasks';
+import scraperRoutes from './scraper.js';
+import databaseRoutes from './database.js';
+import tasksRoutes from './tasks.js';
+import executionsRoutes from './executions.js';
 
 const router = Router();
 
@@ -39,6 +40,7 @@ router.get('/info', (req: Request, res: Response) => {
                 tasks: 'GET/POST/PUT/DELETE /api/tasks/*',
                 scraper: 'POST /api/scraper/*',
                 database: 'GET /api/database/*',
+                executions: 'GET/DELETE /api/executions/*',
             },
         },
     });
@@ -48,5 +50,6 @@ router.get('/info', (req: Request, res: Response) => {
 router.use('/tasks', tasksRoutes);
 router.use('/scraper', scraperRoutes);
 router.use('/database', databaseRoutes);
+router.use('/executions', executionsRoutes);
 
 export default router;

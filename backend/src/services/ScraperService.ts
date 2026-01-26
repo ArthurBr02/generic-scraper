@@ -31,8 +31,10 @@ export class ScraperService extends EventEmitter {
 
   constructor() {
     super();
-    this.configsPath = path.resolve(__dirname, '../../../configs');
-    this.outputPath = path.resolve(__dirname, '../../../output');
+    // In Docker: __dirname = /app/src/services, so we need ../../configs
+    // In local dev: __dirname = backend/src/services, so we also need ../../configs (from backend root)
+    this.configsPath = path.resolve(__dirname, '../../configs');
+    this.outputPath = path.resolve(__dirname, '../../output');
   }
 
   /**
@@ -40,11 +42,14 @@ export class ScraperService extends EventEmitter {
    */
   private getScraperLib(): any {
     if (!this.scraperLib) {
-      // In Docker, the scraper engine is mounted at /app/scraper-engine (or SCRAPER_ENGINE_PATH env var)
+      // In Docker, the scraper engine is at /app/scraper-engine/src (SCRAPER_ENGINE_PATH env var)
       // In local dev, it's at ../../../src
       const require = createRequire(import.meta.url);
-      const scraperEnginePath = process.env.SCRAPER_ENGINE_PATH || path.resolve(__dirname, '../../../src');
+      const scraperEnginePath = process.env.SCRAPER_ENGINE_PATH 
+        ? path.join(process.env.SCRAPER_ENGINE_PATH, 'src')
+        : path.resolve(__dirname, '../../../src');
       const scraperLibPath = path.join(scraperEnginePath, 'lib.js');
+      console.log(`[ScraperService] Loading scraper lib from: ${scraperLibPath}`);
       this.scraperLib = require(scraperLibPath);
     }
     return this.scraperLib;
@@ -170,8 +175,22 @@ export class ScraperService extends EventEmitter {
    * @returns Loaded configuration object
    */
   loadConfig(configName: string): ScraperConfig {
+    console.log(`[ScraperService.loadConfig] Called with: ${configName}`);
     const configPath = this.resolveConfigPath(configName);
-    return this.getScraperLib().loadConfig({ configPath });
+    console.log(`[ScraperService.loadConfig] Loading from path: ${configPath}`);
+    
+    try {
+      const scraperLib = this.getScraperLib();
+      console.log(`[ScraperService.loadConfig] Scraper lib loaded, calling loadConfig...`);
+      
+      const config = scraperLib.loadConfig({ configPath });
+      
+      console.log(`[ScraperService.loadConfig] Config loaded successfully:`, config?.name || 'unknown');
+      return config;
+    } catch (error: any) {
+      console.error(`[ScraperService.loadConfig] Error loading config:`, error);
+      throw error;
+    }
   }
 
   /**
@@ -180,9 +199,10 @@ export class ScraperService extends EventEmitter {
    * @param configName - Config name or path
    * @returns Absolute path to config file
    */
-  private resolveConfigPath(configName: string): string {
+  resolveConfigPath(configName: string): string {
     // If already an absolute path, use it
     if (path.isAbsolute(configName)) {
+      console.log(`[ScraperService] Config path is already absolute: ${configName}`);
       return configName;
     }
 
@@ -191,11 +211,16 @@ export class ScraperService extends EventEmitter {
 
     // Check if it's in the examples folder
     if (configName.includes('/') || configName.includes('\\')) {
-      return path.join(this.configsPath, fileName);
+      const resolved = path.join(this.configsPath, fileName);
+      console.log(`[ScraperService] Resolved config path (subfolder): ${resolved}`);
+      return resolved;
     }
 
     // Otherwise, look in configs root
-    return path.join(this.configsPath, fileName);
+    const resolved = path.join(this.configsPath, fileName);
+    console.log(`[ScraperService] Resolved config path (root): ${resolved}`);
+    console.log(`[ScraperService] configsPath base: ${this.configsPath}`);
+    return resolved;
   }
 }
 

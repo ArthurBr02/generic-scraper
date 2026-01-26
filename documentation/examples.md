@@ -1596,9 +1596,320 @@ npm run start -- --config daily-scraper.json --schedule
 
 ---
 
+### Exemple : Différence entre `saveAs` et `output` 💡
+
+**Cas d'usage :** Comprendre quand utiliser `saveAs` (données intermédiaires) vs `output` (données finales).
+
+#### ❌ Mauvais exemple : tout en `output`
+
+```json
+{
+  "workflows": [
+    {
+      "name": "main",
+      "steps": [
+        {
+          "id": "extract-urls",
+          "type": "extract",
+          "config": {
+            "container": ".product",
+            "multiple": true,
+            "fields": [
+              { "name": "url", "selector": "a", "type": "attribute", "attribute": "href" }
+            ]
+          }
+        },
+        {
+          "type": "pagination",
+          "config": {
+            "type": "click",
+            "nextSelector": ".next",
+            "maxPages": 5,
+            "repeatSteps": ["extract-urls"]
+          },
+          "output": "productUrls"  // ❌ Mauvais : URLs exportées inutilement
+        },
+        {
+          "type": "loop",
+          "config": {
+            "items": "productUrls",
+            "itemVar": "product",
+            "steps": [
+              {
+                "type": "navigate",
+                "config": { "url": "{{product.url}}" }
+              },
+              {
+                "type": "extract",
+                "config": {
+                  "fields": [
+                    { "name": "title", "selector": ".title", "type": "text" },
+                    { "name": "price", "selector": ".price", "type": "text" }
+                  ]
+                },
+                "output": "products"  // ✅ Bon : données finales
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Résultat dans `output/data.json` :**
+```json
+{
+  "productUrls": [  // ❌ Polue le fichier avec des URLs inutiles
+    { "url": "/product/1" },
+    { "url": "/product/2" },
+    { "url": "/product/3" }
+  ],
+  "products": [  // ✅ Les vraies données qu'on veut
+    { "title": "Produit 1", "price": "29.99€" },
+    { "title": "Produit 2", "price": "39.99€" },
+    { "title": "Produit 3", "price": "49.99€" }
+  ]
+}
+```
+
+#### ✅ Bon exemple : `saveAs` pour intermédiaire, `output` pour final
+
+```json
+{
+  "workflows": [
+    {
+      "name": "main",
+      "steps": [
+        {
+          "id": "extract-urls",
+          "type": "extract",
+          "config": {
+            "container": ".product",
+            "multiple": true,
+            "fields": [
+              { "name": "url", "selector": "a", "type": "attribute", "attribute": "href" }
+            ]
+          }
+        },
+        {
+          "type": "pagination",
+          "config": {
+            "type": "click",
+            "nextSelector": ".next",
+            "maxPages": 5,
+            "repeatSteps": ["extract-urls"]
+          },
+          "saveAs": "productUrls"  // ✅ Bon : stocké en interne seulement
+        },
+        {
+          "type": "loop",
+          "config": {
+            "items": "productUrls",
+            "itemVar": "product",
+            "steps": [
+              {
+                "type": "navigate",
+                "config": { "url": "{{product.url}}" }
+              },
+              {
+                "type": "extract",
+                "config": {
+                  "fields": [
+                    { "name": "title", "selector": ".title", "type": "text" },
+                    { "name": "price", "selector": ".price", "type": "text" }
+                  ]
+                },
+                "output": "products"  // ✅ Bon : données finales exportées
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Résultat dans `output/data.json` :**
+```json
+{
+  "products": [  // ✅ Seulement les données utiles
+    { "title": "Produit 1", "price": "29.99€" },
+    { "title": "Produit 2", "price": "39.99€" },
+    { "title": "Produit 3", "price": "49.99€" }
+  ]
+}
+```
+
+**Avantages :**
+- ✅ Fichier de sortie propre et concis
+- ✅ Seulement les données utiles exportées
+- ✅ URLs disponibles en interne pour le workflow
+- ✅ Meilleure performance (moins de données à sérialiser)
+
+---
+
+### Exemple : Pagination avec `saveAs` et `output`
+
+**Cas d'usage :** Collecter des URLs via pagination (non exportées) puis extraire les détails complets (exportés).
+
+```json
+{
+  "name": "job-listings-scraper",
+  "target": {
+    "url": "https://jobs-site.com/listings"
+  },
+  "workflows": [
+    {
+      "name": "main",
+      "steps": [
+        {
+          "type": "navigate",
+          "config": {
+            "url": "{{target.url}}"
+          }
+        },
+        {
+          "id": "extract-urls",
+          "type": "extract",
+          "config": {
+            "container": ".job-item",
+            "multiple": true,
+            "fields": [
+              {
+                "name": "url",
+                "selector": "a.job-link",
+                "type": "attribute",
+                "attribute": "href"
+              }
+            ]
+          }
+        },
+        {
+          "type": "pagination",
+          "config": {
+            "type": "click",
+            "nextSelector": ".next-page",
+            "maxPages": 5,
+            "waitAfterClick": 2000,
+            "repeatSteps": ["extract-urls"]
+          },
+          "saveAs": "jobUrls"
+        },
+        {
+          "type": "loop",
+          "config": {
+            "items": "jobUrls",
+            "itemVar": "job",
+            "steps": [
+              {
+                "type": "navigate",
+                "config": {
+                  "url": "https://jobs-site.com{{job.url}}"
+                }
+              },
+              {
+                "type": "extract",
+                "config": {
+                  "fields": [
+                    {
+                      "name": "url",
+                      "type": "pageUrl"
+                    },
+                    {
+                      "name": "title",
+                      "selector": ".job-title",
+                      "type": "text"
+                    },
+                    {
+                      "name": "company",
+                      "selector": ".company-name",
+                      "type": "text"
+                    },
+                    {
+                      "name": "location",
+                      "selector": ".location",
+                      "type": "text"
+                    },
+                    {
+                      "name": "salary",
+                      "selector": ".salary",
+                      "type": "text"
+                    },
+                    {
+                      "name": "description",
+                      "selector": ".description",
+                      "type": "text"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "output": "jobs"
+        }
+      ]
+    }
+  ],
+  "output": {
+    "format": "csv",
+    "path": "./output/jobs-{{date}}.csv"
+  }
+}
+```
+
+**Résultat CSV :**
+```csv
+url,title,company,location,salary,description
+https://jobs-site.com/job/123,Developer,Tech Corp,Paris,50k-60k,Full description...
+https://jobs-site.com/job/124,Designer,Design Co,Lyon,45k-55k,Full description...
+```
+
+✅ Les URLs intermédiaires (`saveAs: "jobUrls"`) ne sont PAS exportées  
+✅ Seuls les détails complets (`output: "jobs"`) sont dans le CSV
+
+---
+
 ## Bonnes pratiques
 
-### 1. Gérer les pop-ups et cookies
+### 1. Distinction entre `saveAs` et `output`
+
+**Utilisez `saveAs` pour les données intermédiaires** (non exportées) :
+- URLs collectées pour navigation ultérieure
+- Tokens d'authentification
+- IDs de pagination
+- Données temporaires de calcul
+
+```json
+{
+  "type": "pagination",
+  "config": {
+    "type": "click",
+    "nextSelector": ".next",
+    "repeatSteps": ["extract-urls"]
+  },
+  "saveAs": "productUrls"
+}
+```
+
+**Utilisez `output` pour les données finales** (exportées) :
+- Données principales à sauvegarder
+- Résultats du scraping
+- Contenu pour JSON/CSV
+
+```json
+{
+  "type": "extract",
+  "config": {
+    "fields": [...]
+  },
+  "output": "products"
+}
+```
+
+### 2. Gérer les pop-ups et cookies
 
 Toujours ajouter un step pour fermer les pop-ups en début de workflow :
 
@@ -1612,7 +1923,7 @@ Toujours ajouter un step pour fermer les pop-ups en début de workflow :
 }
 ```
 
-### 2. Attentes appropriées
+### 3. Attentes appropriées
 
 Ajouter des attentes entre les actions pour la stabilité :
 
@@ -1625,7 +1936,7 @@ Ajouter des attentes entre les actions pour la stabilité :
 }
 ```
 
-### 3. Logs pour le debug
+### 4. Logs pour le debug
 
 Augmenter le niveau de log pendant le développement :
 
@@ -1638,7 +1949,7 @@ Augmenter le niveau de log pendant le développement :
 }
 ```
 
-### 4. Mode headless=false pour tester
+### 5. Mode headless=false pour tester
 
 Désactiver headless pour voir ce qui se passe :
 
@@ -1651,7 +1962,7 @@ Désactiver headless pour voir ce qui se passe :
 }
 ```
 
-### 5. Screenshots on error
+### 6. Screenshots on error
 
 Toujours activer les screenshots d'erreur :
 

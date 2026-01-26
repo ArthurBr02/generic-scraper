@@ -5,6 +5,104 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.0.0-sprint7] - 2026-01-26
+
+### 🚀 Phase 4 - Sprint 7 : Exécution & Monitoring temps réel
+
+#### Ajouté
+
+**Backend - WebSocket & Événements temps réel**
+- `types/websocket.types.ts` - Types TypeScript pour WebSocket :
+  - Événements Client → Server : `task:start`, `task:stop`
+  - Événements Server → Client : `task:status`, `task:progress`, `task:log`, `task:step`, `task:data`, `task:complete`, `task:error`
+  - Interfaces pour `Execution`, `LogEntry`, `ExecutionStatus`
+- `services/WebSocketService.ts` - Service WebSocket avec Socket.io :
+  - Initialisation du serveur WebSocket
+  - Gestion des connexions/déconnexions
+  - Émission d'événements vers tous les clients ou clients spécifiques
+  - Intégration avec ExecutionService
+
+**Backend - Service d'exécution**
+- `services/ExecutionService.ts` - Gestionnaire d'exécutions :
+  - Queue d'exécution avec gestion des priorités
+  - Exécutions concurrentes configurables (max 2 par défaut)
+  - Arrêt propre des exécutions
+  - Émission d'événements WebSocket en temps réel
+  - Sauvegarde dans SQLite (tables `executions`, `execution_logs`, `execution_data`)
+  - Suivi de la progression et des logs
+  - Gestion des erreurs
+
+**Backend - API Historique**
+- `routes/executions.ts` - Routes API pour l'historique :
+  - `GET /api/executions` - Liste toutes les exécutions (filtrable par tâche/statut)
+  - `GET /api/executions/:id` - Détails d'une exécution avec logs
+  - `GET /api/executions/task/:taskId/stats` - Statistiques par tâche
+  - `GET /api/executions/running` - Exécutions en cours
+  - `DELETE /api/executions/:id` - Suppression d'une exécution
+
+**Frontend - Service WebSocket**
+- `services/WebSocketService.ts` - Client WebSocket :
+  - Connexion automatique avec reconnexion
+  - Gestion des événements serveur
+  - Méthodes `startTask()` et `stopTask()`
+  - Event handlers personnalisables
+- `types/websocket.ts` - Types frontend pour WebSocket
+- `stores/execution.ts` - Store Pinia pour l'état temps réel :
+  - Gestion des exécutions en cours
+  - Logs en temps réel
+  - Progression et statuts
+  - Gestion des événements WebSocket
+
+**Frontend - Vue d'exécution temps réel**
+- `views/TaskRunView.vue` - Vue principale d'exécution :
+  - Affichage du statut (pending, running, completed, failed, cancelled)
+  - Barre de progression globale (0-100%)
+  - Étape courante en cours
+  - Boutons Démarrer/Arrêter avec feedback visuel
+  - Onglets Logs et Données
+- `components/execution/LogsPanel.vue` - Panneau de logs :
+  - Filtrage par niveau (info, warn, error, debug)
+  - Recherche dans les logs
+  - Scroll automatique activable
+  - Export des logs en fichier texte
+  - Effacement des logs
+  - Statistiques (total, affichés)
+- `components/execution/DataPreview.vue` - Aperçu des données :
+  - Vue JSON formatée
+  - Vue tableau pour arrays et objets
+  - Copie dans le presse-papier
+  - Téléchargement en JSON
+  - Affichage des statistiques
+
+**Frontend - Historique des exécutions**
+- `views/ExecutionHistoryView.vue` - Liste des exécutions :
+  - Filtrage par tâche et statut
+  - Tableau avec statut, durée, éléments extraits
+  - Modal de détails avec logs complets
+  - Suppression d'exécutions
+  - Actualisation manuelle
+- Route `/executions` ajoutée au router
+- Lien "Historique" dans le header de navigation
+
+**Base de données**
+- Utilisation des tables existantes `executions`, `execution_logs`, `execution_data`
+- Sauvegarde automatique des exécutions et logs
+- Historique persistant
+
+#### Modifié
+- `backend/src/app.ts` - Intégration WebSocket avec le serveur HTTP
+- `frontend/package.json` - Ajout de `socket.io-client` v4.6.1
+- `frontend/src/components/layout/Header.vue` - Ajout du lien Historique
+
+#### Technique
+- **Stack temps réel** : Socket.io (WebSocket + polling fallback)
+- **Concurrence** : Queue d'exécution avec limite configurable
+- **Persistance** : SQLite pour l'historique complet
+- **Événements** : 9 types d'événements WebSocket
+- **Logs** : 4 niveaux (info, warn, error, debug)
+
+---
+
 ## [2.0.0-sprint6] - 2026-01-21
 
 ### 🎨 Phase 3 - Sprint 6 : Configuration des blocs et conversion workflow

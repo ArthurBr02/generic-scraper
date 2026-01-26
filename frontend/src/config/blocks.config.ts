@@ -818,12 +818,19 @@ export const blockDefinitions: BlockDefinition[] = [
           label: 'IDs des étapes à répéter',
           placeholder: 'step-1,step-2',
           description: 'Liste des IDs séparés par des virgules'
+        },
+        {
+          key: 'dataOutput',
+          type: 'output',
+          label: 'Sauvegarde / Export',
+          description: 'Comment traiter les données collectées durant la pagination ?'
         }
       ]
     },
     defaultConfig: {
       type: 'click',
-      maxPages: 10
+      maxPages: 10,
+      dataOutput: { mode: '', value: '' }
     }
   },
 
@@ -975,18 +982,10 @@ export const blockDefinitions: BlockDefinition[] = [
           ]
         },
         {
-          key: 'saveAs',
-          type: 'text',
-          label: 'Sauvegarder comme',
-          placeholder: 'products, article, data',
-          description: 'Nom de la variable pour réutiliser les données'
-        },
-        {
-          key: 'output',
-          type: 'text',
-          label: 'Output',
-          placeholder: 'details, results',
-          description: 'Nom de sortie pour récupérer directement les données'
+          key: 'dataOutput',
+          type: 'output',
+          label: 'Sauvegarde / Export',
+          description: 'Comment traiter les données extraites ?'
         }
       ]
     },
@@ -995,8 +994,7 @@ export const blockDefinitions: BlockDefinition[] = [
       multiple: false,
       fields: [],
       limit: 0,
-      saveAs: '',
-      output: ''
+      dataOutput: { mode: '', value: '' }
     }
   },
 
@@ -1069,6 +1067,12 @@ export const blockDefinitions: BlockDefinition[] = [
           label: 'Corps (JSON)',
           placeholder: '{"key": "value"}',
           showIf: (config) => ['POST', 'PUT', 'PATCH'].includes(config.method)
+        },
+        {
+          key: 'dataOutput',
+          type: 'output',
+          label: 'Sauvegarde / Export',
+          description: 'Comment traiter la réponse de l\'API ?'
         }
       ]
     },
@@ -1076,7 +1080,8 @@ export const blockDefinitions: BlockDefinition[] = [
       method: 'GET',
       url: '',
       headers: {},
-      body: ''
+      body: '',
+      dataOutput: { mode: '', value: '' }
     }
   },
 
@@ -1147,6 +1152,12 @@ export const blockDefinitions: BlockDefinition[] = [
           placeholder: 'Laisser vide pour tous',
           validation: { min: 1 },
           help: 'Nombre maximum d\'itérations'
+        },
+        {
+          key: 'dataOutput',
+          type: 'output',
+          label: 'Sauvegarde / Export',
+          description: 'Collecter tous les résultats de toutes les itérations'
         }
       ]
     },
@@ -1155,7 +1166,8 @@ export const blockDefinitions: BlockDefinition[] = [
       itemVar: 'item',
       indexVar: 'index',
       limit: null,
-      steps: []
+      steps: [],
+      dataOutput: { mode: '', value: '' }
     }
   },
 
@@ -1426,18 +1438,17 @@ export const blockDefinitions: BlockDefinition[] = [
           }
         },
         {
-          key: 'saveAs',
-          type: 'text',
-          label: 'Sauvegarder comme',
-          placeholder: 'productDetails',
-          description: 'Nom de variable pour le résultat'
+          key: 'dataOutput',
+          type: 'output',
+          label: 'Sauvegarde / Export',
+          description: 'Comment traiter le résultat du sous-workflow ?'
         }
       ]
     },
     defaultConfig: {
       workflowName: '',
       params: {},
-      saveAs: ''
+      dataOutput: { mode: '', value: '' }
     }
   },
 

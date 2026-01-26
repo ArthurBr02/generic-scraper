@@ -10,7 +10,7 @@
 const Scraper = require('./core/scraper');
 const Scheduler = require('./core/scheduler');
 const { loadConfig, validateConfig } = require('./utils/configLoader');
-const { getLogger, setLogLevel } = require('./utils/logger');
+const { getLogger } = require('./utils/logger');
 const { getActionNames, getAction } = require('./actions');
 
 /**
@@ -37,11 +37,6 @@ const { getActionNames, getAction } = require('./actions');
 async function execute(config, options = {}) {
   const logger = getLogger();
   
-  // Set log level if specified
-  if (options.logLevel) {
-    setLogLevel(options.logLevel);
-  }
-  
   // Load config from file if string path is provided
   let loadedConfig = config;
   if (typeof config === 'string') {
@@ -55,29 +50,51 @@ async function execute(config, options = {}) {
     loadedConfig.browser.headless = options.headless;
   }
   
-  // Create scraper instance
-  const scraper = new Scraper(loadedConfig);
+  // Create scraper instance with progress callback
+  const scraper = new Scraper(loadedConfig, options.onProgress);
   
   try {
     // Initialize browser and workflow
     await scraper.initialize();
+    
+    // Emit start event
+    if (options.onProgress) {
+      options.onProgress({ type: 'log', level: 'info', message: 'Initialisation du scraper terminée' });
+    }
     
     logger.info('Starting scraper execution');
     
     // Execute workflow
     const results = await scraper.run();
     
-    // Save output if configured
-    if (loadedConfig.output) {
-      await scraper.saveOutput(results);
+    // Emit completion event with data
+    if (options.onProgress && results.data) {
+      options.onProgress({ 
+        type: 'data', 
+        data: results.data,
+        itemCount: Object.keys(results.data).length || 0
+      });
+    }
+    
+    // Export results to file if output is configured
+    let outputFile = null;
+    if (loadedConfig.output && results.data) {
+      logger.info('Exporting results to file');
+      const exportData = scraper.prepareExportData(results.data);
+      outputFile = await scraper.exportResults(exportData);
+      logger.info('Results exported', { outputFile });
     }
     
     logger.info('Scraper execution completed successfully', {
       success: results.success,
-      itemsExtracted: results.data ? Object.keys(results.data).length : 0
+      itemsExtracted: results.data ? Object.keys(results.data).length : 0,
+      outputFile
     });
     
-    return results;
+    return {
+      ...results,
+      outputFile
+    };
     
   } catch (error) {
     logger.error('Scraper execution failed', {
@@ -212,6 +229,5 @@ module.exports = {
   Scraper,
   
   // Utilities
-  getLogger: getLoggerInstance,
-  setLogLevel
+  getLogger: getLoggerInstance
 };

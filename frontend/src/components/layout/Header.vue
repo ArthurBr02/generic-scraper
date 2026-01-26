@@ -30,6 +30,15 @@
           >
             Tâches
           </router-link>
+          <router-link
+            to="/executions"
+            class="text-sm font-medium transition-colors duration-150"
+            :class="isActiveRoute('/executions') 
+              ? 'text-primary-600 dark:text-primary-400' 
+              : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'"
+          >
+            Historique
+          </router-link>
         </nav>
 
         <!-- Actions -->

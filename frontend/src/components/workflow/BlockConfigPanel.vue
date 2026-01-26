@@ -9,7 +9,7 @@
           </h3>
           <button
             @click="saveConfig"
-            class="p-1.5 text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors"
+            class="p-1.5 text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-600"
             :disabled="hasErrors"
             title="Sauvegarder"
           >
@@ -108,6 +108,7 @@ import KeyValueField from '@/components/form/KeyValueField.vue';
 import ArrayField from '@/components/form/ArrayField.vue';
 import FieldListField from '@/components/form/FieldListField.vue';
 import GroupField from '@/components/form/GroupField.vue';
+import OutputField from '@/components/form/OutputField.vue';
 
 export default defineComponent({
   name: 'BlockConfigPanel',
@@ -122,7 +123,8 @@ export default defineComponent({
     KeyValueField,
     ArrayField,
     FieldListField,
-    GroupField
+    GroupField,
+    OutputField
   },
 
   data() {
@@ -244,7 +246,8 @@ export default defineComponent({
         keyvalue: 'KeyValueField',
         array: 'ArrayField',
         fieldList: 'FieldListField',
-        group: 'GroupField'
+        group: 'GroupField',
+        output: 'OutputField'
       };
       return componentMap[type] || 'TextField';
     },
@@ -330,6 +333,11 @@ export default defineComponent({
         return;
       }
 
+      // Si le champ n'est pas requis et est vide, ne pas valider les autres règles
+      if (!field.required && (value === '' || value === null || value === undefined)) {
+        return;
+      }
+
       // Validation de règles spécifiques
       if (field.validation) {
         const validation = field.validation;
@@ -384,7 +392,11 @@ export default defineComponent({
     validateAllFields(): void {
       if (!this.blockDefinition) return;
 
-      this.blockDefinition.configSchema.fields.forEach(field => {
+      // Réinitialiser les erreurs
+      this.errors = {};
+
+      // Valider uniquement les champs visibles
+      this.visibleFields.forEach(field => {
         const value = this.getFieldValue(field.key);
         this.validateField(field.key, value);
       });

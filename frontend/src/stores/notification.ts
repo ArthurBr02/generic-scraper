@@ -75,6 +75,15 @@ export const useNotificationStore = defineStore('notification', {
 
         clear(): void {
             this.notifications = [];
+        },
+
+        // Alias pour compatibilité
+        showNotification(message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info', title?: string): string {
+            return this.addNotification({
+                type,
+                title,
+                message
+            });
         }
     }
 });

@@ -34,30 +34,109 @@ class Workflow {
     
     const startTime = Date.now();
     const results = {};
+    const totalSteps = this.config.steps.length;
+    const onProgress = this.globalContext.onProgress;
+    const workflowId = this.config.name || 'main';
     
     try {
       for (let i = 0; i < this.config.steps.length; i++) {
         const step = this.config.steps[i];
+        
+        // Emit step event
+        if (onProgress) {
+          onProgress({
+            type: 'step',
+            workflowId: workflowId,
+            step: step.type,
+            stepIndex: i,
+            totalSteps: totalSteps
+          });
+          onProgress({
+            type: 'progress',
+            workflowId: workflowId,
+            progress: Math.round((i / totalSteps) * 100)
+          });
+          onProgress({
+            type: 'log',
+            workflowId: workflowId,
+            level: 'info',
+            message: `[${workflowId}] Exécution de l'étape ${i + 1}/${totalSteps}: ${step.type}`
+          });
+        }
+        
         const stepResult = await this.executeStep(step, page, i);
         
         // Stocker le résultat si un nom de sortie est spécifié
         if (step.output) {
-          this.logger.info(`💾 Saving step result to workflow.data.${step.output}`, {
+          // Toujours stocker dans this.data pour usage interne
+          this.data[step.output] = stepResult;
+          
+          // Ne pas exporter les clés numériques pour éviter les doublons
+          if (!/^\d+$/.test(step.output)) {
+            this.logger.info(`💾 Saving step result to workflow.data.${step.output} (will be exported)`, {
+              resultType: Array.isArray(stepResult) ? 'array' : typeof stepResult,
+              length: Array.isArray(stepResult) ? stepResult.length : 'N/A',
+              sample: Array.isArray(stepResult) ? stepResult[0] : stepResult
+            });
+            results[step.output] = stepResult;
+            
+            // Emit data event for this specific output
+            if (onProgress) {
+              onProgress({
+                type: 'data',
+                workflowId: workflowId,
+                dataKey: step.output,
+                data: stepResult,
+                itemCount: Array.isArray(stepResult) ? stepResult.length : 1
+              });
+            }
+          } else {
+            this.logger.debug(`🚫 Skipping numeric key ${step.output} to avoid duplicates in export`);
+          }
+        }
+        
+        // Stocker le résultat avec saveAs (interne uniquement, pas exporté)
+        if (step.saveAs) {
+          this.logger.info(`💾 Saving step result to workflow.data.${step.saveAs} (internal only, won't be exported)`, {
             resultType: Array.isArray(stepResult) ? 'array' : typeof stepResult,
             length: Array.isArray(stepResult) ? stepResult.length : 'N/A',
             sample: Array.isArray(stepResult) ? stepResult[0] : stepResult
           });
-          this.data[step.output] = stepResult;
-          results[step.output] = stepResult;
+          this.data[step.saveAs] = stepResult;
+          // Ne pas ajouter à results pour éviter l'export
         }
       }
       
       const duration = Date.now() - startTime;
+      
+      // Emit completion event
+      if (onProgress) {
+        onProgress({
+          type: 'progress',
+          workflowId: workflowId,
+          progress: 100
+        });
+        onProgress({
+          type: 'log',
+          workflowId: workflowId,
+          level: 'info',
+          message: `[${workflowId}] Workflow terminé en ${duration}ms - ${Object.keys(results).length} résultats`
+        });
+      }
+      
       this.logger.info(`Workflow completed in ${duration}ms`, {
         workflow: this.config.name,
         duration,
         steps: this.config.steps.length
       });
+      
+      // Debug: log final results structure
+      const resultKeys = Object.keys(results);
+      this.logger.info(`📦 Final workflow results has ${resultKeys.length} keys: ${resultKeys.join(', ')}`);
+      for (const [key, value] of Object.entries(results)) {
+        const valueType = Array.isArray(value) ? `array[${value.length}]` : typeof value;
+        this.logger.info(`📦 results["${key}"] = ${valueType}`);
+      }
       
       return {
         success: true,

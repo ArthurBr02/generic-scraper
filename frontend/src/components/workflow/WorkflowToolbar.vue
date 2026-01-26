@@ -230,8 +230,8 @@ export default defineComponent({
         if (!confirmed) return;
       }
 
-      this.reset();
-      this.success('Nouveau workflow créé');
+      // Déplacement vers la route de création d'un nouveau workflow /task/new
+      this.$router.push('/task/new');
     },
 
     triggerImport(): void {

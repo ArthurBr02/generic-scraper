@@ -434,6 +434,65 @@ Résultat : `my-scraper-2026-01-20-14-30-00.json`
 
 ---
 
+## 💡 Concepts clés à retenir
+
+### `saveAs` vs `output` - La différence importante
+
+**Question** : Quand utiliser `saveAs` ou `output` dans vos extractions ?
+
+| Situation | Utilisez | Exemple |
+|-----------|----------|---------|
+| "Je veux ces URLs pour les visiter ensuite" | `saveAs` | Pagination → URLs de produits |
+| "Ce sont mes résultats finaux à exporter" | `output` | Détails complets des produits |
+| "J'ai besoin de ces IDs temporairement" | `saveAs` | IDs à passer à une API |
+| "C'est ce que je veux dans mon fichier CSV" | `output` | Liste de prix |
+
+**Exemple concret** :
+
+```json
+{
+  "workflow": {
+    "steps": [
+      {
+        "type": "extract",
+        "config": {
+          "selector": ".product-link",
+          "type": "list",
+          "fields": [
+            { "name": "url", "selector": "a", "type": "attribute", "attribute": "href" }
+          ]
+        },
+        "saveAs": "productUrls"  // 💾 Usage interne (pas exporté)
+      },
+      {
+        "type": "loop",
+        "config": {
+          "items": "productUrls",
+          "steps": [
+            {
+              "type": "extract",
+              "config": {
+                "fields": [
+                  { "name": "title", "selector": ".title", "type": "text" },
+                  { "name": "price", "selector": ".price", "type": "text" }
+                ]
+              },
+              "output": "products"  // 📤 Export final
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
+```
+
+**Résultat** : Votre fichier contiendra seulement `products`, pas `productUrls` !
+
+[➡️ En savoir plus sur saveAs vs output](configuration.md#-différence-entre-saveas-et-output)
+
+---
+
 ## 🆘 Problèmes courants
 
 ### Le navigateur ne démarre pas

@@ -1,7 +1,7 @@
 {
-  "name": "mon-scraper",
+  "name": "ErasmusIntern - Engineering Informatics - CSV",
   "target": {
-    "url": "https://erasmusintern.org/traineeships?search_api_views_fulltext=developer&field_traineeship_full_location_field_traineeship_location_count=All&f%5B0%5D=field_traineeship_field_studies%253Aparents_all%3A38"
+    "url": "https://erasmusintern.org/traineeships?search_api_views_fulltext=engineering&field_traineeship_full_location_field_traineeship_location_count=All&f%5B0%5D=field_traineeship_field_studies%253Aparents_all%3A38&f%5B1%5D=field_traineeship_field_studies%253Aparents_all%3A43"
   },
   "browser": {
     "headless": false,
@@ -16,10 +16,18 @@
     "retryDelay": 1000,
     "screenshotOnError": true
   },
+  "scheduling": {
+    "enabled": false,
+    "cron": "",
+    "timezone": "Europe/Paris"
+  },
   "output": {
-    "format": "json",
+    "format": "csv",
     "path": "./output/",
-    "append": true
+    "append": true,
+    "csv": {
+      "delimiter": ";"
+    }
   },
   "workflows": [
     {
@@ -32,7 +40,7 @@
             "waitUntil": "networkidle"
           },
           "position": {
-            "x": 100,
+            "x": 80,
             "y": 100
           }
         },
@@ -97,8 +105,7 @@
             "waitForSelector": ".view-content > div",
             "repeatSteps": [
               "extract-data"
-            ],
-            "maxPages": 2
+            ]
           },
           "position": {
             "x": 600,

@@ -295,25 +295,8 @@ export default defineComponent({
     },
 
     async runTask(id: string): Promise<void> {
-      this.confirmModal = {
-        open: true,
-        title: 'Lancer la tâche',
-        message: 'Voulez-vous lancer cette tâche de scraping ?',
-        variant: 'info',
-        confirmText: 'Lancer',
-        loading: false,
-        action: async () => {
-          this.runningTasks.push(id);
-          try {
-            // TODO: Implémenter l'exécution de la tâche
-            this.success('Tâche lancée avec succès');
-          } catch (err: any) {
-            this.error(err.message || 'Erreur lors du lancement de la tâche');
-          } finally {
-            this.runningTasks = this.runningTasks.filter(tid => tid !== id);
-          }
-        }
-      };
+      // Rediriger vers la page d'exécution
+      this.$router.push(`/task/${id}/run`);
     },
 
     async duplicateTask(id: string): Promise<void> {

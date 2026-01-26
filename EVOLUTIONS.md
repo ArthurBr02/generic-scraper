@@ -24,15 +24,13 @@ Il faut afficher la version en cours dans l'interface (ex: v1.0.0).
 - Tout doit tourner sous Docker (backend et frontend). Faire un docker-compose pour lancer les deux conteneurs.
 - Le scraping est fait via le code dans le dossier `src`, utilise ça. Lis le fichier `STRUCTURE.md` pour comprendre comment ça marche.
 
-### Améliorations futures possibles
-Gestion d'utilisateurs et authentification (ex: OAuth, JWT).
-
-
 ## Intégrer des fonctionnalités d'analyse et de visualisation des données extraites directement dans l'outil (consultation JSON et CSV).
 - Il faut une interface pour visualiser les logs en temps réel et l'état des tâches en cours.
 - Il faut une interface pour visualiser les données extraites (avec possibilité de filtrer, trier, etc.).
 
 # V3 - Optimisation du scraping et gestion des erreurs
+## Afficher les variables de l'exécution en cours (saveAs et output) dans l'interface de debug.
+## Afficher les différentes variables `saveAs` et `output` dans l'interface utilisateur de modifier/création d'un workflow.
 ## Implémenter un système de gestion des erreurs plus robuste avec des options de reprise automatique (ex: retries avec backoff exponentiel, alertes en cas d'échec répété).
 - Ajouter des options de configuration pour gérer les erreurs (nombre de retries, délais entre les retries, etc.).
 - Mettre en place un système de notifications (email, Slack, etc.) pour informer des erreurs critiques.
@@ -51,3 +49,6 @@ Gestion d'utilisateurs et authentification (ex: OAuth, JWT).
 
 # V5 - Extensibilité et personnalisation
 ## Mettre en place un système de plugins pour permettre aux utilisateurs d'étendre les fonctionnalités du scraper.
+
+# Améliorations futures possibles
+Gestion d'utilisateurs et authentification (ex: OAuth, JWT).

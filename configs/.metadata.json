@@ -31,8 +31,9 @@
     "name": "mon-scraper",
     "configFile": "erasmusintern.bkp.json",
     "createdAt": "2026-01-25T14:15:26.608Z",
-    "updatedAt": "2026-01-25T14:15:26.608Z",
-    "runCount": 0
+    "updatedAt": "2026-01-26T23:22:00.907Z",
+    "runCount": 0,
+    "description": ""
   },
   "erasmusinterngf": {
     "id": "erasmusinterngf",
@@ -59,6 +60,33 @@
     "configFile": "8009a63f-10be-436e-9e85-87a5bf8ad256.json",
     "createdAt": "2026-01-26T21:15:27.448Z",
     "updatedAt": "2026-01-26T21:15:27.448Z",
+    "runCount": 0
+  },
+  "70a8009f-ded2-4b44-a829-a7bb7f2efced": {
+    "id": "70a8009f-ded2-4b44-a829-a7bb7f2efced",
+    "name": "ErasmusIntern - DevOps - CSV",
+    "description": "",
+    "configFile": "70a8009f-ded2-4b44-a829-a7bb7f2efced.json",
+    "createdAt": "2026-01-26T21:20:08.765Z",
+    "updatedAt": "2026-01-26T21:20:30.169Z",
+    "runCount": 0
+  },
+  "9cdab2f2-562d-4cab-9e6e-1a2488b5facc": {
+    "id": "9cdab2f2-562d-4cab-9e6e-1a2488b5facc",
+    "name": "ErasmusIntern - Developer - CSV",
+    "description": "",
+    "configFile": "9cdab2f2-562d-4cab-9e6e-1a2488b5facc.json",
+    "createdAt": "2026-01-26T21:21:48.996Z",
+    "updatedAt": "2026-01-26T21:21:48.996Z",
+    "runCount": 0
+  },
+  "4b07fe92-ef9a-4bce-b2b0-307a3769d282": {
+    "id": "4b07fe92-ef9a-4bce-b2b0-307a3769d282",
+    "name": "ErasmusIntern - Engineering Informatics - CSV",
+    "description": "",
+    "configFile": "4b07fe92-ef9a-4bce-b2b0-307a3769d282.json",
+    "createdAt": "2026-01-26T21:23:19.703Z",
+    "updatedAt": "2026-01-26T21:48:48.585Z",
     "runCount": 0
   }
 }
