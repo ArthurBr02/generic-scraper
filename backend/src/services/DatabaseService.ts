@@ -64,26 +64,49 @@ export class DatabaseService {
    * Initialize database (run migrations, set pragmas)
    */
   async init(): Promise<void> {
-    // Enable WAL mode for better performance
-    await this.run('PRAGMA journal_mode = WAL');
-    
-    // Enable foreign keys
-    await this.run('PRAGMA foreign_keys = ON');
-    
-    // Run migrations
-    await this.runMigrations();
+    try {
+      logger.info('Setting PRAGMA journal_mode = WAL...');
+      await this.run('PRAGMA journal_mode = WAL');
+      
+      logger.info('Setting PRAGMA foreign_keys = ON...');
+      await this.run('PRAGMA foreign_keys = ON');
+      
+      logger.info('Running migrations...');
+      await this.runMigrations();
+      
+      logger.info('Database initialization completed');
+    } catch (error: any) {
+      logger.error('Database initialization failed', { error: error.message, stack: error.stack });
+      throw error;
+    }
   }
 
   /**
    * Run database migrations (create tables)
    */
   private async runMigrations(): Promise<void> {
-    const schemaPath = path.resolve(__dirname, '../../sql/schema.sql');
-    const schema = fs.readFileSync(schemaPath, 'utf8');
-    await this.exec(schema);
-    
-    // Run additional migrations
-    await this.runAdditionalMigrations();
+    try {
+      const schemaPath = path.resolve(__dirname, '../../sql/schema.sql');
+      logger.info(`Loading schema from: ${schemaPath}`);
+      
+      if (!fs.existsSync(schemaPath)) {
+        throw new Error(`Schema file not found at: ${schemaPath}`);
+      }
+      
+      const schema = fs.readFileSync(schemaPath, 'utf8');
+      logger.info(`Schema file loaded (${schema.length} bytes)`);
+      
+      logger.info('Executing schema SQL...');
+      await this.exec(schema);
+      logger.info('Schema executed successfully');
+      
+      logger.info('Running additional migrations...');
+      await this.runAdditionalMigrations();
+      logger.info('Additional migrations completed');
+    } catch (error: any) {
+      logger.error('Migration failed', { error: error.message, stack: error.stack });
+      throw error;
+    }
   }
 
   /**
@@ -91,6 +114,16 @@ export class DatabaseService {
    */
   private async runAdditionalMigrations(): Promise<void> {
     try {
+      // Verify that execution_logs table exists first
+      const tables = await this.all(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='execution_logs'"
+      );
+      
+      if (tables.length === 0) {
+        logger.info('execution_logs table does not exist yet, skipping migrations');
+        return;
+      }
+      
       // Check if workflow_id column exists in execution_logs
       const columns = await this.all('PRAGMA table_info(execution_logs)');
       const hasWorkflowId = columns.some((col: any) => col.name === 'workflow_id');
@@ -101,9 +134,20 @@ export class DatabaseService {
         await this.run('CREATE INDEX IF NOT EXISTS idx_execution_logs_workflow_id ON execution_logs(workflow_id)');
         logger.info('Migration completed: workflow_id column added');
       }
+      
+      // Check if workflow_id column exists in execution_data
+      const dataColumns = await this.all('PRAGMA table_info(execution_data)');
+      const hasDataWorkflowId = dataColumns.some((col: any) => col.name === 'workflow_id');
+      
+      if (!hasDataWorkflowId) {
+        logger.info('Adding workflow_id column to execution_data table');
+        await this.run('ALTER TABLE execution_data ADD COLUMN workflow_id TEXT DEFAULT \'main\'');
+        await this.run('CREATE INDEX IF NOT EXISTS idx_execution_data_workflow_id ON execution_data(workflow_id)');
+        logger.info('Migration completed: workflow_id column added to execution_data');
+      }
     } catch (error: any) {
-      // If table doesn't exist yet, it will be created by schema.sql
-      logger.warn('Migration check failed (table may not exist yet)', { error: error.message });
+      logger.error('Migration failed', { error: error.message, stack: error.stack });
+      throw error;
     }
   }
 

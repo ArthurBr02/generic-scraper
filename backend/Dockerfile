@@ -35,8 +35,9 @@ COPY ./backend .
 # Create necessary directories
 RUN mkdir -p /app/configs /app/logs /app/output /app/data
 
-# Copy startup script
+# Copy startup script and ensure Unix line endings
 COPY ./backend/start.sh /app/start.sh
+RUN dos2unix /app/start.sh || sed -i 's/\r$//' /app/start.sh
 RUN chmod +x /app/start.sh
 
 # Expose port
